@@ -1,7 +1,9 @@
 package com.example.try1;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Field;
@@ -15,6 +17,8 @@ import java.sql.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import android.app.Activity;
 import android.app.Service;
@@ -39,6 +43,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.os.PowerManager;
+import android.os.StatFs;
 import android.os.SystemClock;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -67,12 +72,13 @@ public class MainActivity extends Activity {
     private Button button;
     private Button button2;
     private String pu_ip;
-    private VideoView videoview;
+    private CustomVideoView videoview;
     private ImageView imageview;
     private View layout_video_picture;
     private View layout_video_picture1;
     private View layout_video_picture2;
     private String locAddress;
+    private int cutlineVideo_times=0;
 //    private Runtime run = Runtime.getRuntime();//获取当前运行环境，来执行ping，相当于windows的cmd
 
     //    private String url;
@@ -125,7 +131,7 @@ public class MainActivity extends Activity {
                     //style 1   ，图片+视频
                     setContentView(layout_video_picture);
                     //更新控件
-                    videoview = (VideoView) findViewById(R.id.videoView3);
+                    videoview = (CustomVideoView) findViewById(R.id.videoView3);
                     imageview = (ImageView) findViewById(R.id.imageView3);
 //                    String video_path =msg.obj.toString().split("|")[0];
 //                    String picture_path =msg.obj.toString().split("|")[1];
@@ -167,7 +173,7 @@ public class MainActivity extends Activity {
                             break;
                     }
                     //更新控件
-                    videoview = (VideoView) findViewById(R.id.videoView3);
+                    videoview = (CustomVideoView) findViewById(R.id.videoView3);
                     imageview = (ImageView) findViewById(R.id.imageView3);
                     break;
                 default:
@@ -309,7 +315,8 @@ public class MainActivity extends Activity {
                                     videoview.pause();
                                     break;
                                 case "get_file_list":
-                                    pair.send(getFileNameList().toString());
+//                                    pair.send(getFileNameList().toString());
+                                    pair.send(getFileNameList().toString()+"["+getAvailableInternalMemorySize()+"]");
                                     break;
                                 case "get_video_list":
                                     //视频播放列表
@@ -388,6 +395,11 @@ public class MainActivity extends Activity {
                                         message6.what = 12;
                                         message6.obj = getData.split("_")[getData.split("_").length-1];
                                         handler.sendMessage(message6);
+                                    }else if(getData.startsWith("set_cut_line_video")){
+                                        String temp =setCutlineVideo(getData.split("_")[getData.split("_").length-2],Integer.parseInt(getData.split("_")[getData.split("_").length-1]));
+                                        if(temp.equals("fileNotFound")){
+                                            pair.send("fileNotFound");
+                                        }
                                     }
                                     break;
                             }
@@ -434,7 +446,7 @@ public class MainActivity extends Activity {
                                 videoview.pause();
                                 break;
                             case "get_file_list":
-                                pair.send(getFileNameList().toString());
+                                pair.send(getFileNameList().toString()+"["+getAvailableInternalMemorySize()+"]");
 //                                JSONObject object = new JSONObject();
                                 break;
                             case "get_video_list":
@@ -448,6 +460,7 @@ public class MainActivity extends Activity {
                                 message4.obj =sub.recvStr() ;
                                 handler.sendMessage(message4);
                                 break;
+
                             case "change_layout_video_picture":
                                 Message message = new Message();
                                 message.what = 7;
@@ -501,7 +514,15 @@ public class MainActivity extends Activity {
                                     message6.what = 12;
                                     message6.obj = getData.split("_")[getData.split("_").length-1];
                                     handler.sendMessage(message6);
+                                }else if(getData.startsWith("set_cut_line_video")){
+                                    String temp =setCutlineVideo(getData.split("_")[getData.split("_").length-2],Integer.parseInt(getData.split("_")[getData.split("_").length-1]));
+                                    if(temp.equals("fileNotFound")){
+                                        pair.send("fileNotFound");
+                                    }
                                 }
+
+
+
                                 break;
                         }
                     } catch (ZMQException e) {
@@ -513,6 +534,8 @@ public class MainActivity extends Activity {
     //更改播放文件
     // 循环播放一个视频列表中的视频
     public void setVideoList( ArrayList<String> new_file_list){
+//        videoview.onMeasure(100,100);
+//        videoview.onMeasure(10,20); 没有用
         pos=0;
         video_toPlay_list = new ArrayList<>(new_file_list);
         if (file_list.size()<1){
@@ -562,7 +585,30 @@ public class MainActivity extends Activity {
             }
         });
     }
-//阿斯蒂芬
+    //插队播放一个视频多少次
+    public String setCutlineVideo(String file_name,int times){
+        cutlineVideo_times =times;
+        if(!getFileNameList().contains(file_name)){
+            return "fileNotFound";
+        }
+        videoview.setVideoURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+file_name));
+        videoview.start();
+        videoview.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+            @Override
+            public void onCompletion(MediaPlayer mediaPlayer) {
+//                videoview.setVideoPath(file_list.get(pos++).getPath());
+                System.out.println(cutlineVideo_times);
+                if(cutlineVideo_times-->1){
+                    videoview.start();
+                }else {
+                    videoview.setVideoURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+video_toPlay_list.get(pos)));
+                    videoview.start();
+                }
+
+            }
+        });
+        return "ok";
+    }
 
     ZMQ.Context context = ZMQ.context(1);
     ZMQ.Socket pair = context.socket(ZMQ.PAIR);
@@ -616,13 +662,122 @@ public class MainActivity extends Activity {
         return String.valueOf(hs);
     }
 
+    public static String getCPURateDesc_All(){
+        String path = "/proc/stat";// 系统CPU信息文件
+        long totalJiffies[]=new long[2];
+        long totalIdle[]=new long[2];
+        int firstCPUNum=0;//设置这个参数，这要是防止两次读取文件获知的CPU数量不同，导致不能计算。这里统一以第一次的CPU数量为基准
+        FileReader fileReader = null;
+        BufferedReader bufferedReader = null;
+        Pattern pattern= Pattern.compile(" [0-9]+");
+        for(int i=0;i<2;i++) {
+            totalJiffies[i]=0;
+            totalIdle[i]=0;
+            try {
+                fileReader = new FileReader(path);
+                bufferedReader = new BufferedReader(fileReader, 8192);
+                int currentCPUNum=0;
+                String str;
+                while ((str = bufferedReader.readLine()) != null&&(i==0||currentCPUNum<firstCPUNum)) {
+                    if (str.toLowerCase().startsWith("cpu")) {
+                        currentCPUNum++;
+                        int index = 0;
+                        Matcher matcher = pattern.matcher(str);
+                        while (matcher.find()) {
+                            try {
+                                long tempJiffies = Long.parseLong(matcher.group(0).trim());
+                                totalJiffies[i] += tempJiffies;
+                                if (index == 3) {//空闲时间为该行第4条栏目
+                                    totalIdle[i] += tempJiffies;
+                                }
+                                index++;
+                            } catch (NumberFormatException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                    if(i==0){
+                        firstCPUNum=currentCPUNum;
+                        try {//暂停50毫秒，等待系统更新信息。
+                            Thread.sleep(5000);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            } finally {
+                if (bufferedReader != null) {
+                    try {
+                        bufferedReader.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+        double rate=-1;
+        if (totalJiffies[0]>0&&totalJiffies[1]>0&&totalJiffies[0]!=totalJiffies[1]){
+            rate=1.0*((totalJiffies[1]-totalIdle[1])-(totalJiffies[0]-totalIdle[0]))/(totalJiffies[1]-totalJiffies[0]);
+        }
+
+        Log.d("CpuUtils","zrx---- cpu_rate:"+rate);
+        return String.format("cpu:%.2f",rate);
+    }
+
+    static public long getAvailableInternalMemorySize() {
+        //剩余内部存储大小
+        File path = Environment.getDataDirectory();
+        StatFs stat = new StatFs(path.getPath());
+        long blockSize = stat.getBlockSize();
+        //获取可用区块数量
+        long availableBlocks = stat.getAvailableBlocks();
+        return availableBlocks * blockSize/1000000;
+    }
+    public static long getTotalMemory() {
+        //剩余运存大小
+        String str1 = "/proc/meminfo";
+        String str2;
+        String[] arrayOfString;
+        long initial_memory = 0;
+        try {
+            FileReader localFileReader = new FileReader(str1);
+            BufferedReader localBufferedReader = new BufferedReader(localFileReader, 8192);
+            str2 = localBufferedReader.readLine();
+            if (str2 != null) {
+                System.out.println("&&&&&&&&&&");
+                System.out.println(str2);
+//                arrayOfString = str2.split("\s+");
+//                initial_memory = Integer.valueOf(arrayOfString[1]).intValue()/1024;
+            }
+            localBufferedReader.close();
+            return initial_memory;
+        }
+        catch (IOException e)
+        {
+            return -1;
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         send_udp_broadcast(MainActivity.this);
+
+
+//        StatFs stat = new StatFs(getSDCardPath());
+//        long blockSize, availableBlocks;
+//        availableBlocks = stat.getAvailableBlocksLong();
+//        blockSize = stat.getBlockSizeLong();
+//        long size = availableBlocks * blockSize / 1024L;
+//        System.out.println(String.valueOf(size));
+//        System.out.println(getCPURateDesc_All());
+
         tv= (TextView) findViewById(R.id.tv);
-        videoview = (VideoView) findViewById(R.id.videoView);
+        videoview = (CustomVideoView) findViewById(R.id.videoView);
         button = (Button) findViewById(R.id.button1);
         button2 = (Button) findViewById(R.id.button2);
         file_list =new ArrayList<>();
@@ -639,10 +794,12 @@ public class MainActivity extends Activity {
         file_list.add(Uri.parse(url30));
         //以上两行功能一样
         layout_video_picture = inflater.inflate(R.layout.style1, null);
+
         System.out.println(get_mac(MainActivity.this));
         System.out.println(android.os.Build.MANUFACTURER);
 //        setVideo(url30);
-        video_toPlay_list.add("10.mp4");
+
+//        video_toPlay_list.add("10.mp4");
         video_toPlay_list.add("30_saved_1.mp4");
         setVideoList(video_toPlay_list);
 

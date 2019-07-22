@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     tools:context=".learn">
 
-    <VideoView
+    <com.example.try1.CustomVideoView
         android:id="@+id/videoView3"
         android:layout_width="357dp"
         android:layout_height="417dp"
