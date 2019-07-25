@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">try1</string>
+    <string name="fontSize">32</string>
 </resources>

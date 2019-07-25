@@ -5,7 +5,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
 import android.widget.Toast;
-
+/**
+ 实现功能：开机启动
+ **/
 public class MyReceiver1 extends BroadcastReceiver {
 
     @Override

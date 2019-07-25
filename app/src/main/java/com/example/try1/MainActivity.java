@@ -5,13 +5,17 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.lang.reflect.Field;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.net.URL;
 import java.security.cert.TrustAnchor;
 import java.sql.Array;
 import java.util.ArrayList;
@@ -63,7 +67,8 @@ import org.json.JSONObject;
 import static java.lang.Thread.sleep;
 
 public class MainActivity extends Activity {
-    TextView tv;
+    private TextView textView;
+    private TextView textView2;
     static int pos=0;
     private ArrayList<Uri> file_list;
     private ArrayList<String> video_toPlay_list;
@@ -79,50 +84,53 @@ public class MainActivity extends Activity {
     private View layout_video_picture2;
     private String locAddress;
     private int cutlineVideo_times=0;
-//    private Runtime run = Runtime.getRuntime();//获取当前运行环境，来执行ping，相当于windows的cmd
+    private String weatherTypeToday;
+    private String weatherTypeTomorrow;
+    private String temperatureToday;
+    private String temperatureTomorrow;
+    private String dateToday;
+    private String dateTomorrow;
 
-    //    private String url;
+
+//    private Runtime run = Runtime.getRuntime();//获取当前运行环境，来执行ping，相当于windows的cmd
     String url30 ;
+
+    // 接收子线程中的信息，来更新控件，因为只有主线程才能更新控件
     private Handler  handler = new Handler(){
         public void handleMessage(Message msg){
             switch (msg.what){
                 case 0:
                     // 初始化连接，获取控制端ip    pair模式，端口5550
-                    tv.setText("信息1");
+
                     pu_ip = msg.obj.toString();
                     System.out.println(pu_ip);
                     break;
                 case 1:
-                    tv.setText("信息1");
+
                     setVideo(msg.obj.toString());
-//                    try {
-//                        MainActivity.this.wait(5);
-//                    }catch (InterruptedException e) {
-//                        e.printStackTrace();
-//                    }
-                    tv.setText(msg.obj.toString());
+
                     System.out.println("sub模式收到信息");
                     break;
                 case 2:
-                    tv.setText(msg.obj.toString());
+
                     videoview.pause();
                     System.out.println("pair模式收到信息");
                     break;
                 case 3:
-                    tv.setText("restart");
+
                     videoview.start();
                     break;
                 case 4:
-                    tv.setText("重头开始播放");
+
                     videoview.resume();
                     break;
                 case 5:
-                    tv.setText("更换视频");
+
 //                    videoview.setVideoPath();
 //                    videoview.setVideoURI(Uri.parse(videoURI));
                     break;
                 case 6:
-                    tv.setText(msg.obj.toString()+new Date().toLocaleString());
+                    textView.setText(msg.obj.toString()+new Date().toLocaleString());
                     pu_ip =msg.obj.toString();
 //                    videoview.setVideoPath();
 //                    videoview.setVideoURI(Uri.parse(videoURI));
@@ -137,7 +145,6 @@ public class MainActivity extends Activity {
 //                    String picture_path =msg.obj.toString().split("|")[1];
 //                    imageview.setImageResource();
 //                    videoview.stopPlayback();
-
 //                    Bitmap bitmap = BitmapFactory.decodeFile(getExternalFilesDir(null).toString()+"/"+msg.obj.toString());
                     Bitmap bitmap = BitmapFactory.decodeFile(getExternalFilesDir(null).toString()+"/test1.jpg");
                     imageview.setImageBitmap(bitmap);
@@ -160,7 +167,7 @@ public class MainActivity extends Activity {
                     setVideo((getExternalFilesDir(null).toString()+"/"+msg.obj.toString()));
                     break;
                 case 12:
-                    //更换分屏样式
+                    //更换分屏样式，暂未写完，等待具体分屏样式确定
                     switch (msg.obj.toString()){
                         case "1":
                             setContentView(layout_video_picture);
@@ -176,6 +183,14 @@ public class MainActivity extends Activity {
                     videoview = (CustomVideoView) findViewById(R.id.videoView3);
                     imageview = (ImageView) findViewById(R.id.imageView3);
                     break;
+                case 13:
+                    //更新生活信息，天气预报+限行
+                    textView.setText(dateToday+" "+"\n"+weatherTypeToday+"  "+temperatureToday+" ℃");
+                    textView2.setText(dateTomorrow+"\n"+weatherTypeTomorrow+"  "+temperatureTomorrow+" ℃");
+//                    private String weatherTypeToday;
+//                    private String weatherTypeTomorrow;
+//                    private String dateToday;
+//                    private String dateTomorrow;temperatureTomorrow
                 default:
                     break;
             }
@@ -235,6 +250,7 @@ public class MainActivity extends Activity {
             e.printStackTrace();
         }
     }
+    //获取系统音量
     private int getSystemVolume(Context context){
         try {
             AudioManager audioManager = (AudioManager) context.getSystemService(Service.AUDIO_SERVICE);
@@ -272,6 +288,7 @@ public class MainActivity extends Activity {
         }
         return fileList;
     }
+
     public void wait(int second){
         try {
             sleep(second*1000);
@@ -320,7 +337,12 @@ public class MainActivity extends Activity {
                                     break;
                                 case "get_video_list":
                                     //视频播放列表
-                                    pair.send(video_toPlay_list.toString());
+//                                    pair.send(video_toPlay_list.toString());
+                                    if(video_toPlay_list==null){
+                                        pair.send("video_toPlay_list is null");
+                                    }else {
+                                        pair.send(video_toPlay_list.toString());
+                                    }
                                     break;
                                 case "update_video_list":
 //                                video_toPlay_list= ArrayList.asList(sub.recvStr());
@@ -408,13 +430,6 @@ public class MainActivity extends Activity {
                         throw e;
                     }
                 }
-//                ZMQ.Socket client2 =context.socket(ZMQ.PAIR);
-//                client2.connect("tcp://10.0.2.2:5557");
-//                ZMQ.Poller poller = new ZMQ.Poller(context,2);
-//                Boolean keep = true;
-//                for (int i=0;i<10;i++) {
-//                    String recv_command =(client1.recvStr());
-//                }
             }
         }).start();
     }
@@ -451,7 +466,11 @@ public class MainActivity extends Activity {
                                 break;
                             case "get_video_list":
                                 //视频播放列表
-                                pair.send(video_toPlay_list.toString());
+                                if(video_toPlay_list==null){
+                                    pair.send("video_toPlay_list is null");
+                                }else {
+                                    pair.send(video_toPlay_list.toString());
+                                }
                                 break;
                             case "update_video_list":
 //                                video_toPlay_list= ArrayList.asList(sub.recvStr());
@@ -520,9 +539,6 @@ public class MainActivity extends Activity {
                                         pair.send("fileNotFound");
                                     }
                                 }
-
-
-
                                 break;
                         }
                     } catch (ZMQException e) {
@@ -553,6 +569,7 @@ public class MainActivity extends Activity {
             }
         });
     }
+    //播放下一个视频
     private void nextVideo() {
 // TODO Auto-generated method stub
         pos++;
@@ -585,7 +602,7 @@ public class MainActivity extends Activity {
             }
         });
     }
-    //插队播放一个视频多少次
+    //插队播放一个视频, n次
     public String setCutlineVideo(String file_name,int times){
         cutlineVideo_times =times;
         if(!getFileNameList().contains(file_name)){
@@ -661,7 +678,7 @@ public class MainActivity extends Activity {
         }
         return String.valueOf(hs);
     }
-
+    //获取cpu利用率，目前在小米手机上测试有问题
     public static String getCPURateDesc_All(){
         String path = "/proc/stat";// 系统CPU信息文件
         long totalJiffies[]=new long[2];
@@ -736,30 +753,6 @@ public class MainActivity extends Activity {
         long availableBlocks = stat.getAvailableBlocks();
         return availableBlocks * blockSize/1000000;
     }
-    public static long getTotalMemory() {
-        //剩余运存大小
-        String str1 = "/proc/meminfo";
-        String str2;
-        String[] arrayOfString;
-        long initial_memory = 0;
-        try {
-            FileReader localFileReader = new FileReader(str1);
-            BufferedReader localBufferedReader = new BufferedReader(localFileReader, 8192);
-            str2 = localBufferedReader.readLine();
-            if (str2 != null) {
-                System.out.println("&&&&&&&&&&");
-                System.out.println(str2);
-//                arrayOfString = str2.split("\s+");
-//                initial_memory = Integer.valueOf(arrayOfString[1]).intValue()/1024;
-            }
-            localBufferedReader.close();
-            return initial_memory;
-        }
-        catch (IOException e)
-        {
-            return -1;
-        }
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -767,19 +760,11 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
         send_udp_broadcast(MainActivity.this);
 
-
-//        StatFs stat = new StatFs(getSDCardPath());
-//        long blockSize, availableBlocks;
-//        availableBlocks = stat.getAvailableBlocksLong();
-//        blockSize = stat.getBlockSizeLong();
-//        long size = availableBlocks * blockSize / 1024L;
-//        System.out.println(String.valueOf(size));
-//        System.out.println(getCPURateDesc_All());
-
-        tv= (TextView) findViewById(R.id.tv);
+        textView =(TextView)findViewById(R.id.textView);
+        textView2 =(TextView)findViewById(R.id.textView2);
         videoview = (CustomVideoView) findViewById(R.id.videoView);
-        button = (Button) findViewById(R.id.button1);
-        button2 = (Button) findViewById(R.id.button2);
+//        button = (Button) findViewById(R.id.button1);
+//        button2 = (Button) findViewById(R.id.button2);
         file_list =new ArrayList<>();
         video_toPlay_list =new ArrayList<>();
         String url10 =getExternalFilesDir(null).toString()+ "/10.mp4";
@@ -794,14 +779,17 @@ public class MainActivity extends Activity {
         file_list.add(Uri.parse(url30));
         //以上两行功能一样
         layout_video_picture = inflater.inflate(R.layout.style1, null);
-
+//        videoview.setVideoURI(Uri.parse("android.resource://"+getPackageName() +"/"+R.raw.pic1));
+        videoview.setVideoURI(Uri.parse("android.resource://"+getPackageName() +"/"+R.raw.nine_second));
+        videoview.start();
         System.out.println(get_mac(MainActivity.this));
         System.out.println(android.os.Build.MANUFACTURER);
 //        setVideo(url30);
 
+        getWeatherDatafromNet("北京");
 //        video_toPlay_list.add("10.mp4");
         video_toPlay_list.add("30_saved_1.mp4");
-        setVideoList(video_toPlay_list);
+//        setVideoList(video_toPlay_list);
 
         init_client();
 //        test_sub();
@@ -812,13 +800,6 @@ public class MainActivity extends Activity {
 ////                Intent i = new Intent(MainActivity.this,learn.class);
 ////                startActivity(i);
 ////                setVideo(urla);
-//            }
-//        });
-//        button2.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-//                System.out.println(pu_ip);
-//                test_sub();
 //            }
 //        });
     }
@@ -846,5 +827,51 @@ public class MainActivity extends Activity {
 //        }
 //
 //    }
+private void getWeatherDatafromNet(String city)
+{
+//    final String address = "http://wthrcdn.etouch.cn/WeatherApi?citykey="+cityCode;
+    final String address = "http://wthrcdn.etouch.cn/weather_mini?city="+city;
+    Log.d("Address:",address);
+    new Thread(new Runnable() {
+        @Override
+        public void run() {
+            HttpURLConnection urlConnection = null;
+            try {
+                URL url = new URL(address);
+                urlConnection = (HttpURLConnection) url.openConnection();
+                urlConnection.setRequestMethod("GET");
+                urlConnection.setConnectTimeout(8000);
+                urlConnection.setReadTimeout(8000);
+                InputStream in = urlConnection.getInputStream();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+                StringBuffer sb = new StringBuffer();
+                String str;
+                while((str=reader.readLine())!=null)
+                {
+                    sb.append(str);
+                    Log.d("date from url",str);
+                    JSONObject result = new JSONObject(str);
+                    JSONObject temp0 =result.getJSONObject("data").getJSONArray("forecast").getJSONObject(0);
+                    JSONObject temp1 =result.getJSONObject("data").getJSONArray("forecast").getJSONObject(1);
+                    weatherTypeToday=temp0.getString("type");
+                    dateToday=temp0.getString("date");
+                    weatherTypeTomorrow=temp1.getString("type");
+                    dateTomorrow=temp1.getString("date");
+                    temperatureToday=result.getJSONObject("data").getString("wendu");
+                    temperatureTomorrow = temp1.getString("high").substring(2,5);
 
+                    Message msg =new Message();
+                    msg.what=13;
+                    handler.sendMessage(msg);
+//                    System.out.println("weatherType"+weatherType);
+                }
+                String response = sb.toString();
+                Log.d("response",response);
+            }catch (Exception e)
+            {
+                e.printStackTrace();
+            }
+        }
+    }).start();
+    }
 }
