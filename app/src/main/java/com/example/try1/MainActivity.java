@@ -136,7 +136,8 @@ public class MainActivity extends Activity {
                     System.out.println("reset layoutSize "+msg.obj.toString());
                     break;
                 case 3:
-                    videoview.start();
+                    //设置二维码图片
+                    imageview2.setImageURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+msg.obj.toString()));
                     break;
                 case 4:
 
@@ -536,7 +537,6 @@ public class MainActivity extends Activity {
 
                                     }else if(getData.startsWith("change_city_")){
                                         defaultCity=getData.split("_")[getData.split("_").length-1];
-
                                         SharedPreferences.Editor editor = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
                                         editor.putString("defaultCity",defaultCity);
                                         editor.apply();
@@ -549,6 +549,11 @@ public class MainActivity extends Activity {
                                         Message message6 = new Message();
                                         message6.what = 2;
                                         message6.obj = layoutSize;
+                                        handler.sendMessage(message6);
+                                    }else if(getData.startsWith("set_qrcode")){
+                                        Message message6 = new Message();
+                                        message6.what = 3;
+                                        message6.obj = getData.split("_")[getData.split("_").length-1];
                                         handler.sendMessage(message6);
                                     }
                                     break;
@@ -705,6 +710,17 @@ public class MainActivity extends Activity {
                                 }else if(getData.startsWith("set_picture_time_")){
                                     picture_time = Integer.parseInt(getData.split("_")[getData.split("_").length-1]);
                                     setPictureTimer();
+                                }else if(getData.startsWith("set_layoutsize")){
+                                    layoutSize = Integer.parseInt(getData.split("_")[getData.split("_").length-1]);
+                                    Message message6 = new Message();
+                                    message6.what = 2;
+                                    message6.obj = layoutSize;
+                                    handler.sendMessage(message6);
+                                }else if(getData.startsWith("set_qrcode")){
+                                    Message message6 = new Message();
+                                    message6.what = 3;
+                                    message6.obj = getData.split("_")[getData.split("_").length-1];
+                                    handler.sendMessage(message6);
                                 }
                                 break;
                         }
@@ -826,8 +842,6 @@ public class MainActivity extends Activity {
             editor.putInt("posForPicture",posForPicture);
             editor.apply();
         }
-
-
         imageview.setImageURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+picture_toPlay_list.get(posForPicture).trim()));
 //        if(posForPicture%2==0){
 //            videoview.pause();
