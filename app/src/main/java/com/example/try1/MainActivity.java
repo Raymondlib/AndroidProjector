@@ -121,6 +121,7 @@ public class MainActivity extends Activity {
     private String dateTomorrow;
     private HashMap<String,Integer> weatherMap;
     private int layoutSize =1;
+    private TimerTask timerTask;
 
     //    private Runtime run = Runtime.getRuntime();//获取当前运行环境，来执行ping，相当于windows的cmd
     String url30 ;
@@ -192,13 +193,13 @@ public class MainActivity extends Activity {
                     ArrayList<String> video_temp_list= new ArrayList<>(Arrays.asList(msg.obj.toString().split(",")));
                     setVideoList(video_temp_list);
                     SharedPreferences.Editor editor2 = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
-                    editor2.putString("video_toPlay_list",video_temp_list.toString().substring(1,video_temp_list.toString().length()-1));
+                    editor2.putString("video_toPlay_list",video_temp_list.toString().substring(1,video_toPlay_list.toString().length()-1));
                     editor2.apply();
-                    SharedPreferences pref2 = getSharedPreferences("data_try1",MODE_PRIVATE);
-                    String video_toPlay_list = pref2.getString("video_toPlay_list","why");
-                    System.out.println("&&&&&&&&&");
-                    System.out.println(video_toPlay_list);
-                    System.out.println(video_toPlay_list.toString().substring(1,video_toPlay_list.toString().length()-1));
+//                    SharedPreferences pref2 = getSharedPreferences("data_try1",MODE_PRIVATE);
+//                    String video_toPlay_list = pref2.getString("video_toPlay_list","why");
+//                    System.out.println("&&&&&&&&&");
+//                    System.out.println(video_toPlay_list);
+//                    System.out.println(video_toPlay_list.toString().substring(1,video_toPlay_list.toString().length()-1));
                     break;
                 case 11:
                     //立即重复播放一个视频
@@ -388,6 +389,7 @@ public class MainActivity extends Activity {
             @Override
             public void run() {
                 //作为 服务端，监听控制器连接
+                System.out.println("初始化");
                 pair.bind("tcp://*:5550");
                 String pu_ip ;
                 boolean wait = true;
@@ -417,10 +419,8 @@ public class MainActivity extends Activity {
                         }else {
                             switch (getData){
                                 case "start_video":
-                                    Message msg = new Message();
-                                    msg.what=3;
-                                    handler.sendMessage(msg);
-//                                    videoview.start();
+
+                                    videoview.start();
                                     break;
                                 case "pause_video":
 
@@ -462,7 +462,6 @@ public class MainActivity extends Activity {
                                     if(message12.obj!=null){
                                         handler.sendMessage(message12);
                                     }
-
                                     break;
 
                                 case "change_layout_video_picture":
@@ -566,6 +565,9 @@ public class MainActivity extends Activity {
                                         updateWeather(defaultCity);
                                     }else if(getData.startsWith("set_picture_time_")){
                                         picture_time = Integer.parseInt(getData.split("_")[getData.split("_").length-1]);
+                                        SharedPreferences.Editor editor = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
+                                        editor.putInt("picture_time",picture_time);
+                                        editor.apply();
                                         setPictureTimer();
                                     }else if(getData.startsWith("set_layoutsize")){
 
@@ -611,16 +613,11 @@ public class MainActivity extends Activity {
                         System.out.println(getData);
                         switch (getData){
                             case "start_video":
-                                Message msg = new Message();
-                                msg.what=3;
-                                handler.sendMessage(msg);
-//                                videoview.start();
+
+                                videoview.start();
                                 break;
                             case "pause_video":
-                                Message msg1 = new Message();
-                                msg1.what=2;
-                                handler.sendMessage(msg1);
-//                                videoview.pause();
+                                videoview.pause();
                                 break;
                             case "get_file_list":
                                 pair.send(getFileNameList().toString()+"["+getFreeSize()+"]");
@@ -737,6 +734,9 @@ public class MainActivity extends Activity {
                                     updateWeather(defaultCity);
                                 }else if(getData.startsWith("set_picture_time_")){
                                     picture_time = Integer.parseInt(getData.split("_")[getData.split("_").length-1]);
+                                    SharedPreferences.Editor editor = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
+                                    editor.putInt("picture_time",picture_time);
+                                    editor.apply();
                                     setPictureTimer();
                                 }else if(getData.startsWith("set_layoutsize")){
                                     Message message6 = new Message();
@@ -774,6 +774,23 @@ public class MainActivity extends Activity {
         });
         videoview.start();
     }
+    //设备或者app重启时调用，恢复播放之前的视频
+    public void setVideoListRestart( ArrayList<String> new_file_list,int pos){
+        posForVideo=pos;
+        video_toPlay_list = new ArrayList<>(new_file_list);
+        System.out.println(getExternalFilesDir(null).toString()+"/"+video_toPlay_list.get(posForVideo));
+        System.out.println("999999999");
+        videoview.setVideoURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+video_toPlay_list.get(posForVideo).trim()));
+        System.out.println(video_toPlay_list.get(posForVideo).trim());
+        videoview.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+            @Override
+            public void onCompletion(MediaPlayer mediaPlayer) {
+                nextVideo();
+            }
+        });
+        videoview.start();
+    }
+
     //播放下一个视频
     private void nextVideo() {
 // TODO Auto-generated method stub
@@ -784,8 +801,9 @@ public class MainActivity extends Activity {
         SharedPreferences.Editor editor = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
         editor.putInt("posForVideo",posForVideo);
         editor.apply();
-
-        videoview.setVideoURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+video_toPlay_list.get(posForVideo)));
+        System.out.println("视频");
+        System.out.println(video_toPlay_list.get(posForVideo));
+        videoview.setVideoURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+video_toPlay_list.get(posForVideo).trim()));
 //        videoview.setMediaController(mc);
 //        videoview.requestFocus();
         videoview.start();
@@ -826,7 +844,7 @@ public class MainActivity extends Activity {
                 if(cutlineVideo_times-->1){
                     videoview.start();
                 }else {
-                    videoview.setVideoURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+video_toPlay_list.get(posForVideo)));
+                    videoview.setVideoURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+video_toPlay_list.get(posForVideo).trim()));
                     videoview.start();
                 }
 
@@ -853,7 +871,7 @@ public class MainActivity extends Activity {
                         if(cutlineVideo_times2-->1){
                             videoview.start();
                         }else {
-                            videoview.setVideoURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+video_toPlay_list.get(posForVideo)));
+                            videoview.setVideoURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+video_toPlay_list.get(posForVideo).trim()));
                             videoview.start();
                         }
                     }
@@ -881,11 +899,33 @@ public class MainActivity extends Activity {
             setPictureTimer();
         }
     }
+    public void setPictureListRestart( ArrayList<String> new_file_list,int pos,int picture_time){
+//        videoview.onMeasure(100,100);
+//        videoview.onMeasure(10,20); 没有用
+        posForPicture=0;
+        picture_toPlay_list = new ArrayList<>(new_file_list);
+        System.out.println("$$$$$$");
+        System.out.println(picture_toPlay_list);
+        if (picture_toPlay_list.size()<1){
+            System.out.println("文件列表中无文件");
+            return;
+        }else {
+            System.out.println("文件列表");
+            setPictureTimer2(pos,picture_time);
+        }
+    }
+
+
     //播放下一个图片
     private void nextPicture() {
+        System.out.println("播放下一个图片");
+
         if (posForPicture == picture_toPlay_list.size()) {
             posForPicture = 0;
         }
+        System.out.println(picture_toPlay_list);
+        System.out.println(picture_toPlay_list.get(posForPicture));
+        System.out.println(posForPicture);
         if(picture_time>5){
             SharedPreferences.Editor editor = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
             editor.putInt("posForPicture",posForPicture);
@@ -901,22 +941,56 @@ public class MainActivity extends Activity {
         posForPicture++;
     }
     private void setPictureTimer(){
+        System.out.println("时间间隔"+picture_time);
         if(timerForPicture!=null){
             timerForPicture.cancel();
         }
         timerForPicture=new Timer();
 //        timerForPicture.purge();
         posForPicture=0;
-        timerForPicture.schedule(new TimerTask(){
-            public void run(){
-//                nextPicture();
+        if(timerTask!=null){timerTask.cancel();}
+        timerTask = new TimerTask() {
+            @Override
+            public void run() {
                 Message msg = new Message();
                 msg.what =15;
                 handler.sendMessage(msg);
-//                timer.cancel();
             }
-        }, 0,picture_time*1000);
+        };
+        timerForPicture.schedule(timerTask, 0,picture_time*1000);
+
+//        timerForPicture.schedule(new TimerTask(){
+//            public void run(){
+////                nextPicture();
+//                Message msg = new Message();
+//                msg.what =15;
+//                handler.sendMessage(msg);
+////                timer.cancel();
+//            }
+//        }, 0,picture_time*1000);
     }
+    private void setPictureTimer2(int pos,int picture_time){
+        System.out.println("时间间隔"+picture_time);
+        if(timerForPicture!=null){
+            timerForPicture.cancel();
+        }
+
+        timerForPicture=new Timer();
+//        timerForPicture.purge();
+        posForPicture=pos;
+        if(timerTask!=null){timerTask.cancel();}
+
+        timerTask = new TimerTask() {
+            @Override
+            public void run() {
+                Message msg = new Message();
+                msg.what =15;
+                handler.sendMessage(msg);
+            }
+        };
+        timerForPicture.schedule(timerTask, 0,picture_time*1000);
+    }
+
 
     ZMQ.Context context = ZMQ.context(1);
     ZMQ.Socket pair = context.socket(ZMQ.PAIR);
@@ -1120,23 +1194,17 @@ public class MainActivity extends Activity {
         videoview = (VideoView) findViewById(R.id.videoView);
         imageview = (RoundedImageView) findViewById(R.id.imageView);
 //        imageview.setImageURI(Uri.parse(getExternalFilesDir(null).toString()+ "/new2.jpg"));
-
         weatherMap = initWeatherMap();
-
-
-
-
 //        videoview.setVideoURI(Uri.parse("android.resource://"+getPackageName() +"/"+R.raw.pic1));
-
-        video_toPlay_list = new ArrayList<>();
-        video_toPlay_list.add("a2.mp4");
-        video_toPlay_list.add("c.mp4");
-        setVideoList(video_toPlay_list);
-        picture_toPlay_list = new ArrayList<>();
-        picture_toPlay_list.add("png1.png");
-        picture_toPlay_list.add("png2.png");
-        picture_toPlay_list.add("png3.png");
-        setPictureList(picture_toPlay_list);
+//        video_toPlay_list = new ArrayList<>();
+//        video_toPlay_list.add("a2.mp4");
+//        video_toPlay_list.add("c.mp4");
+//        setVideoList(video_toPlay_list);
+//        picture_toPlay_list = new ArrayList<>();
+//        picture_toPlay_list.add("png1.png");
+//        picture_toPlay_list.add("png2.png");
+//        picture_toPlay_list.add("png3.png");
+//        setPictureList(picture_toPlay_list);
 
         System.out.println(get_mac(MainActivity.this));
         System.out.println(android.os.Build.MANUFACTURER);
@@ -1239,27 +1307,29 @@ public class MainActivity extends Activity {
         if(video_toPlay_list!=null){
             if(video_toPlay_list.get(0).equals("not_set")){
                 System.out.println("video_toPlay_list"+video_toPlay_list);
-//                    video_toPlay_list.set(0,"10.mp4");
-//                    setVideoList(video_toPlay_list);
             }else {
-                System.out.println("00000000");
+                System.out.println("*****");
                 System.out.println(video_toPlay_list);
-                setVideoList(video_toPlay_list);
+                System.out.println(pref.getInt("posForVideo",0));
+                videoview = findViewById(R.id.videoView);
+                setVideoListRestart(video_toPlay_list,pref.getInt("posForVideo",0));
             }
         }else {
-            System.out.println("88888");
             System.out.println("video_toPlay_list = null");
         }
         if(picture_toPlay_list.get(0).equals("not_set")){
             System.out.println("picture_toPlay_list"+picture_toPlay_list);
         }else {
+            System.out.println("@@@@@@@@@@");
             System.out.println(picture_toPlay_list);
+            picture_time = pref.getInt("picture_time",0);
+            setPictureListRestart(picture_toPlay_list,pref.getInt("posForPicture",0),pref.getInt("picture_time",2));
 //                    setPictureList(picture_toPlay_list);
         }
 //        setLayoutPosition(layout1);
         setLayoutSize(layout1,pref.getInt("layoutSize",90),pref.getInt("left_margin",0),pref.getInt("top_margin",0));
 //            posForPicture = pref.getInt("posForPicture",0);
-//            posForVideo = pref.getInt("posForVideo",0);
+
 
 //            ArrayList<String> video_toPlay_list_t = new ArrayList<>();
 //            video_toPlay_list_t.add("10.mp4");
@@ -1292,14 +1362,6 @@ public class MainActivity extends Activity {
         return Formatter.formatFileSize(MainActivity.this, blockSize * availableBlocks +blockSize2 * availableBlocks2 );
     }
     public HashMap<String, Integer> initWeatherMap() {
-//        ResourceBundle rb = ResourceBundle.getBundle(propertiesFile);
-//
-//        Enumeration enu = rb.getKeys();
-//        while (enu.hasMoreElements()) {
-//            Object obj = enu.nextElement();
-//            Object objv = rb.getObject(obj.toString());
-//            weatherMap.put(obj.toString(), (Integer)objv );
-//        }
         HashMap<String,Integer> map  = new HashMap<>();
         map.put("多云",R.mipmap.a1);
         map.put("多云转晴",R.mipmap.a2);
@@ -1352,7 +1414,6 @@ public class MainActivity extends Activity {
                 return false;
             }
         } else {
-//            Toast.makeText(getApplicationContext(), "删除单个文件失败：" + filePath$Name + "不存在！", Toast.LENGTH_SHORT).show();
             return false;
         }
 
