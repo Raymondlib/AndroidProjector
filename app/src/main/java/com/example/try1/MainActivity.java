@@ -63,17 +63,22 @@ import android.os.StatFs;
 import android.os.SystemClock;
 import android.text.format.Formatter;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.MediaController;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.VideoView;
+
+import androidx.constraintlayout.widget.ConstraintLayout;
 
 import com.makeramen.roundedimageview.RoundedImageView;
 
@@ -107,6 +112,7 @@ public class MainActivity extends Activity {
     private View layout_video_picture2;
     private String locAddress;
     private int cutlineVideo_times=0;
+    private int cutlineVideo_times2=0;
     private String weatherTypeToday;
     private String weatherTypeTomorrow;
     private String temperatureToday;
@@ -132,7 +138,10 @@ public class MainActivity extends Activity {
                     System.out.println("sub模式收到信息");
                     break;
                 case 2:
-                    setLayout(layout1,Integer.parseInt(msg.obj.toString()));
+                    int layoutSize =Integer.parseInt(msg.obj.toString().split(",")[0]);
+                    int leftMargin =Integer.parseInt(msg.obj.toString().split(",")[1]);
+                    int topMargin =Integer.parseInt(msg.obj.toString().split(",")[2]);
+                    setLayoutSize(layout1,layoutSize,leftMargin,topMargin);
                     System.out.println("reset layoutSize "+msg.obj.toString());
                     break;
                 case 3:
@@ -257,6 +266,13 @@ public class MainActivity extends Activity {
                 case 16:
                     String temp =setCutlineVideo(msg.obj.toString().split("_")[msg.obj.toString().split("_").length-2],Integer.parseInt(msg.obj.toString().split("_")[msg.obj.toString().split("_").length-1]));
                     if(temp.equals("fileNotFound")){
+                        pair.send("fileNotFound");
+                    }
+                    break;
+                case 17:
+                    String temp2 =setCutlineVideo2(msg.obj.toString().split("_")[msg.obj.toString().split("_").length-2],Integer.parseInt(msg.obj.toString().split("_")[msg.obj.toString().split("_").length-1]));
+
+                    if(temp2.equals("fileNotFound")){
                         pair.send("fileNotFound");
                     }
                     break;
@@ -529,13 +545,20 @@ public class MainActivity extends Activity {
                                         message6.what = 12;
                                         message6.obj = getData.split("_")[getData.split("_").length-1];
                                         handler.sendMessage(message6);
+                                    }
+                                    else if(getData.startsWith("set_cut_line_video_notInterrupt")){
+                                        Message message6 = new Message();
+                                        message6.what = 17;
+                                        message6.obj = getData;
+                                        handler.sendMessage(message6);
                                     }else if(getData.startsWith("set_cut_line_video")){
                                         Message message6 = new Message();
                                         message6.what = 16;
                                         message6.obj = getData;
                                         handler.sendMessage(message6);
 
-                                    }else if(getData.startsWith("change_city_")){
+                                    }
+                                    else if(getData.startsWith("change_city_")){
                                         defaultCity=getData.split("_")[getData.split("_").length-1];
                                         SharedPreferences.Editor editor = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
                                         editor.putString("defaultCity",defaultCity);
@@ -545,10 +568,10 @@ public class MainActivity extends Activity {
                                         picture_time = Integer.parseInt(getData.split("_")[getData.split("_").length-1]);
                                         setPictureTimer();
                                     }else if(getData.startsWith("set_layoutsize")){
-                                        layoutSize = Integer.parseInt(getData.split("_")[getData.split("_").length-1]);
+
                                         Message message6 = new Message();
                                         message6.what = 2;
-                                        message6.obj = layoutSize;
+                                        message6.obj = (getData.split("_")[getData.split("_").length-1]);
                                         handler.sendMessage(message6);
                                     }else if(getData.startsWith("set_qrcode")){
                                         Message message6 = new Message();
@@ -693,28 +716,32 @@ public class MainActivity extends Activity {
                                     message6.what = 12;
                                     message6.obj = getData.split("_")[getData.split("_").length-1];
                                     handler.sendMessage(message6);
-                                }else if(getData.startsWith("set_cut_line_video")){
+                                }
+                                else if(getData.startsWith("set_cut_line_videoNotInterrupt")){
+                                    Message message6 = new Message();
+                                    message6.what = 17;
+                                    message6.obj = getData;
+                                    handler.sendMessage(message6);
+                                }
+                                else if(getData.startsWith("set_cut_line_video")){
                                     Message message6 = new Message();
                                     message6.what = 16;
                                     message6.obj = getData;
                                     handler.sendMessage(message6);
-
-                                }else if(getData.startsWith("change_city_")){
+                                }
+                                else if(getData.startsWith("change_city_")){
                                     defaultCity=getData.split("_")[getData.split("_").length-1];
-
                                     SharedPreferences.Editor editor = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
                                     editor.putString("defaultCity",defaultCity);
                                     editor.apply();
-
                                     updateWeather(defaultCity);
                                 }else if(getData.startsWith("set_picture_time_")){
                                     picture_time = Integer.parseInt(getData.split("_")[getData.split("_").length-1]);
                                     setPictureTimer();
                                 }else if(getData.startsWith("set_layoutsize")){
-                                    layoutSize = Integer.parseInt(getData.split("_")[getData.split("_").length-1]);
                                     Message message6 = new Message();
                                     message6.what = 2;
-                                    message6.obj = layoutSize;
+                                    message6.obj = (getData.split("_")[getData.split("_").length-1]);
                                     handler.sendMessage(message6);
                                 }else if(getData.startsWith("set_qrcode")){
                                     Message message6 = new Message();
@@ -733,20 +760,15 @@ public class MainActivity extends Activity {
     //更改播放文件
     // 循环播放一个视频列表中的视频
     public void setVideoList( ArrayList<String> new_file_list){
-//        videoview.onMeasure(100,100);
-//        videoview.onMeasure(10,20); 没有用
         posForVideo=0;
         video_toPlay_list = new ArrayList<>(new_file_list);
-
         System.out.println(getExternalFilesDir(null).toString()+"/"+video_toPlay_list.get(posForVideo));
         System.out.println("999999999");
         videoview.setVideoURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+video_toPlay_list.get(posForVideo).trim()));
-//            videoview.setVideoURI(Uri.parse("/storage/emulated/0/Android/data/com.example.try1/files/10.mp4"));
         System.out.println(video_toPlay_list.get(posForVideo));
         videoview.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mediaPlayer) {
-//                videoview.setVideoPath(file_list.get(pos++).getPath());
                 nextVideo();
             }
         });
@@ -783,13 +805,12 @@ public class MainActivity extends Activity {
         videoview.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mediaPlayer) {
-                System.out.println("***视频结束***");
 //                mediaPlayer.setLooping(true);
                 videoview.start();
             }
         });
     }
-    //插队播放一个视频, n次
+    //插队播放一个视频, n次,打断当前播放视频
     public String setCutlineVideo(String file_name,int times){
         cutlineVideo_times =times;
         if(!getFileNameList().contains(file_name)){
@@ -813,6 +834,35 @@ public class MainActivity extends Activity {
         });
         return "ok";
     }
+    //插队播放一个视频, n次,不打断当前播放视频
+    public String setCutlineVideo2(final String file_name,int times){
+        cutlineVideo_times2 =times;
+        if(!getFileNameList().contains(file_name)){
+            return "fileNotFound";
+        }
+
+        videoview.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+            @Override
+            public void onCompletion(MediaPlayer mediaPlayer) {
+                videoview.setVideoURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+file_name));
+                videoview.start();
+                videoview.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                    @Override
+                    public void onCompletion(MediaPlayer mediaPlayer) {
+//                videoview.setVideoPath(file_list.get(pos++).getPath());
+                        if(cutlineVideo_times2-->1){
+                            videoview.start();
+                        }else {
+                            videoview.setVideoURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+video_toPlay_list.get(posForVideo)));
+                            videoview.start();
+                        }
+                    }
+                });
+            }
+        });
+
+        return "ok";
+    }
 
     //循环播放图片
 //    setPictureList
@@ -829,7 +879,6 @@ public class MainActivity extends Activity {
         }else {
             System.out.println("文件列表");
             setPictureTimer();
-
         }
     }
     //播放下一个图片
@@ -996,8 +1045,17 @@ public class MainActivity extends Activity {
         return availableBlocks * blockSize/1000000;
     }
 
-    private void setLayout(View v,int layoutSize){
-        setContentView(layout1,new LinearLayout.LayoutParams(11*layoutSize, 4*layoutSize));
+    private void setLayoutSize(View layout,int layoutSize,int left,int top){
+        LinearLayout.LayoutParams layoutParams1 = (LinearLayout.LayoutParams) layout.getLayoutParams();
+//        layoutParams1.gravity= Gravity.CENTER_HORIZONTAL;
+//        layoutParams1.gravity= Gravity.CENTER_VERTICAL;
+        layoutParams1.width =11*layoutSize;
+        layoutParams1.height=4*layoutSize;
+        layoutParams1.leftMargin = left;
+        layoutParams1.topMargin = -1*top;
+        layout.setLayoutParams(layoutParams1);
+//        setContentView(layout,new ConstraintLayout.LayoutParams(layout.getWidth(), layout.getHeight()));
+
         textView =(TextView)findViewById(R.id.textView);
         textView2 =(TextView)findViewById(R.id.textView2);
         videoview = (VideoView) findViewById(R.id.videoView);
@@ -1005,8 +1063,25 @@ public class MainActivity extends Activity {
         imageview2 = (RoundedImageView) findViewById(R.id.imageView2);
         SharedPreferences.Editor editor = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
         editor.putInt("layoutSize",layoutSize);
+        editor.putInt("left_margin",left);
+        editor.putInt("top_margin",top);
         editor.apply();
     }
+    private void setLayoutPosition(View v){
+        System.out.println("*****3");
+//        FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) v.getLayoutParams();
+//        layoutParams.leftMargin = v.getLeft();
+//        layoutParams.topMargin = v.getTop();
+//        System.out.println("*******************");
+//        System.out.println(v.getLayoutParams().toString());
+//        v.setLayoutParams(layoutParams);
+//        textView =(TextView)findViewById(R.id.textView);
+//        textView2 =(TextView)findViewById(R.id.textView2);
+//        videoview = (VideoView) findViewById(R.id.videoView);
+//        imageview = (RoundedImageView) findViewById(R.id.imageView);
+//        imageview2 = (RoundedImageView) findViewById(R.id.imageView2);
+    }
+
     //重启
     private void reboot(){
         Intent intent = getBaseContext().getPackageManager().getLaunchIntentForPackage(getBaseContext().getPackageName());
@@ -1021,18 +1096,19 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        setContentView(R.layout.activity_main_projector);
         //LayoutInflater inflater = getLayoutInflater();
-        LayoutInflater inflater = LayoutInflater.from(this);
-        layout1 = inflater.inflate(R.layout.activity_main_projector, null);
-        layout1.setMinimumWidth(407);
-        layout1.setMinimumHeight(148);
-        setContentView(layout1);
-        //以上两行功能一样
-        setContentView(layout1,new LinearLayout.LayoutParams(407*2, 148*2));
-
+//        LayoutInflater inflater = LayoutInflater.from(this);
+//        layout1 = inflater.inflate(R.layout.activity_main_projector, null);
+        layout1 = findViewById(R.id.constraintlayout1);
+//        layout1.setMinimumWidth(407);
+//        layout1.setMinimumHeight(148);
+//        layout1.set
+//        setContentView(layout1);
+//        setContentView(layout1,new LinearLayout.LayoutParams(407*2, 148*2));
         System.out.println(getSharedPreferences("data_try1",MODE_PRIVATE).getInt("layoutSize",80));
         restart();
+
         System.out.println(getSharedPreferences("data_try1",MODE_PRIVATE).getInt("layoutSize",80));
 //        setContentView(layout1);
 
@@ -1180,7 +1256,8 @@ public class MainActivity extends Activity {
             System.out.println(picture_toPlay_list);
 //                    setPictureList(picture_toPlay_list);
         }
-        setLayout(layout1,pref.getInt("layoutSize",90));
+//        setLayoutPosition(layout1);
+        setLayoutSize(layout1,pref.getInt("layoutSize",90),pref.getInt("left_margin",0),pref.getInt("top_margin",0));
 //            posForPicture = pref.getInt("posForPicture",0);
 //            posForVideo = pref.getInt("posForVideo",0);
 
