@@ -225,8 +225,8 @@ public class MainActivity extends Activity {
                     break;
                 case 13:
                     //更新生活信息，天气预报+限行
-                    textView.setText(dateToday+" "+"\n"+weatherTypeToday+"  "+temperatureToday+" ℃");
-                    textView2.setText(dateTomorrow+"\n"+weatherTypeTomorrow+"  "+temperatureTomorrow+" ℃");
+                    textView.setText(dateToday+" "+"\n"+weatherTypeToday+"\n"+temperatureToday+" ℃");
+                    textView2.setText(dateTomorrow+"\n"+weatherTypeTomorrow+"\n"+temperatureTomorrow+" ℃");
                     int weatherType1 ;
                     if(weatherMap.get(weatherTypeToday)!=null){
                         weatherType1 =weatherMap.get(weatherTypeToday);
@@ -289,6 +289,7 @@ public class MainActivity extends Activity {
         //判断wifi是否开启
         if (!wifiManager.isWifiEnabled()) {
             wifiManager.setWifiEnabled(true);
+            return "0.0.0.0";
         }
         WifiInfo wifiInfo = wifiManager.getConnectionInfo();
         int ipAddress = wifiInfo.getIpAddress();
@@ -918,14 +919,12 @@ public class MainActivity extends Activity {
 
     //播放下一个图片
     private void nextPicture() {
-        System.out.println("播放下一个图片");
-
         if (posForPicture == picture_toPlay_list.size()) {
             posForPicture = 0;
         }
-        System.out.println(picture_toPlay_list);
-        System.out.println(picture_toPlay_list.get(posForPicture));
-        System.out.println(posForPicture);
+//        System.out.println(picture_toPlay_list);
+//        System.out.println(picture_toPlay_list.get(posForPicture));
+//        System.out.println(posForPicture);
         if(picture_time>5){
             SharedPreferences.Editor editor = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
             editor.putInt("posForPicture",posForPicture);
@@ -1181,9 +1180,13 @@ public class MainActivity extends Activity {
 //        setContentView(layout1);
 //        setContentView(layout1,new LinearLayout.LayoutParams(407*2, 148*2));
         System.out.println(getSharedPreferences("data_try1",MODE_PRIVATE).getInt("layoutSize",80));
-        restart();
+
 
         System.out.println(getSharedPreferences("data_try1",MODE_PRIVATE).getInt("layoutSize",80));
+
+        //打印ip
+
+
 //        setContentView(layout1);
 
 //        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);//手机上横屏
@@ -1195,6 +1198,7 @@ public class MainActivity extends Activity {
         imageview = (RoundedImageView) findViewById(R.id.imageView);
 //        imageview.setImageURI(Uri.parse(getExternalFilesDir(null).toString()+ "/new2.jpg"));
         weatherMap = initWeatherMap();
+        restart();
 //        videoview.setVideoURI(Uri.parse("android.resource://"+getPackageName() +"/"+R.raw.pic1));
 //        video_toPlay_list = new ArrayList<>();
 //        video_toPlay_list.add("a2.mp4");
@@ -1211,6 +1215,8 @@ public class MainActivity extends Activity {
         setUpdateWeatherTimer();
 
         init_client();
+        Toast.makeText(MainActivity.this,get_ip(MainActivity.this).split("\\.")[3],Toast.LENGTH_LONG);
+        updateWeather(defaultCity);
     }
 
     @Override
@@ -1244,7 +1250,7 @@ public class MainActivity extends Activity {
                 updateWeather(defaultCity);
 //                timer.cancel();
             }
-        }, 0,30*60*1000);
+        }, 12,30*60*1000);
     }
     //获取天气
     private void updateWeather(String city)
@@ -1295,7 +1301,9 @@ public class MainActivity extends Activity {
     }
 
     private void restart(){
+
         SharedPreferences pref = getSharedPreferences("data_try1",MODE_PRIVATE);
+        setLayoutSize(layout1,pref.getInt("layoutSize",90),pref.getInt("left_margin",0),pref.getInt("top_margin",0));
         pu_ip = pref.getString("pu_ip","not_set");
         defaultCity = pref.getString("defaultCity","西安");
         updateWeather(defaultCity);
@@ -1327,7 +1335,7 @@ public class MainActivity extends Activity {
 //                    setPictureList(picture_toPlay_list);
         }
 //        setLayoutPosition(layout1);
-        setLayoutSize(layout1,pref.getInt("layoutSize",90),pref.getInt("left_margin",0),pref.getInt("top_margin",0));
+
 //            posForPicture = pref.getInt("posForPicture",0);
 
 
