@@ -1,14 +1,17 @@
 package com.example.try1;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.lang.reflect.Field;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -52,6 +55,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorListener;
 import android.hardware.SensorManager;
+import android.icu.util.Calendar;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
@@ -68,9 +72,11 @@ import android.os.SystemClock;
 import android.text.format.Formatter;
 import android.util.Log;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
@@ -85,6 +91,7 @@ import android.widget.VideoView;
 import androidx.annotation.NonNull;
 import androidx.constraintlayout.widget.ConstraintLayout;
 
+import com.alibaba.fastjson.JSON;
 import com.makeramen.roundedimageview.RoundedImageView;
 
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
@@ -93,7 +100,9 @@ import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttToken;
 import org.jeromq.ZMQ;
 import org.jeromq.ZMQException;
+import org.json.JSONException;
 import org.json.JSONObject;
+import org.json.JSONArray;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
@@ -103,6 +112,8 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
+import static android.view.KeyEvent.KEYCODE_1;
+import static android.view.KeyEvent.KEYCODE_2;
 import static com.example.try1.MainActivity.TAG;
 import static java.lang.Thread.sleep;
 
@@ -119,6 +130,7 @@ public class MainActivity extends Activity {
     private ArrayList<Uri> file_list;
     private ArrayList<String> video_toPlay_list;
     private ArrayList<String> picture_toPlay_list;
+    private ArrayList<Integer> picture_toPlay_list_time;
     private int picture_time=2;//每张图片的显示时间
     private Button button;
     private Button button2;
@@ -167,10 +179,13 @@ public class MainActivity extends Activity {
     private MqttCallback mqttCallback;
     private int volume;
     private String light_machine="enable";
-    private String current_ad_id;
+    private String current_video_ad_id;
+    private String current_picture_ad_id;
     private HashMap<String,Integer> adPlayStatistic;
     //    private Runtime run = Runtime.getRuntime();//获取当前运行环境，来执行ping，相当于windows的cmd
     String url30 ;
+    long time1;
+    long time2;
 
     private Handler mqttHandler = new Handler(new Handler.Callback() {
         @Override
@@ -353,6 +368,38 @@ public class MainActivity extends Activity {
                         e.printStackTrace();
                     }
                     break;
+                case 20:
+                    String tempPictureList= msg.obj.toString();
+                    //{"png1.png":"4","p":3}
+                    ArrayList <String>tempPicList = new ArrayList();
+                    ArrayList <Integer>tempPicTimeList = new ArrayList();
+                    for(String s:tempPictureList.substring(1,tempPictureList.length()-1).split(",")){
+//                        System.out.println(s);
+                        System.out.println(s.split(":")[1]);
+                        tempPicList.add(s.split(":")[0]);
+                        tempPicTimeList.add(Integer.parseInt(s.split(":")[1]));
+                    }
+                    SharedPreferences.Editor editor = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
+                    editor.putString("picture_toPlay_list",tempPicList.toString().substring(1,tempPicList.toString().length()-1));
+                    editor.putString("picture_toPlay_list_time",tempPicTimeList.toString().substring(1,tempPicTimeList.toString().length()-1));
+                    editor.apply();
+                    setPictureListAndTime(tempPicList,tempPicTimeList);
+
+//                    try {
+////                        JSONObject result = new JSONObject(tempPictureList);
+//                        JSONArray result = new JSONArray(tempPictureList);
+////                        ArrayList<String> tempPicList = new ArrayList<>();
+//                        for(int i=0;i<result.length();i++){
+////                            System.out.println(result.get(i));
+//                        }
+////                        result.getJSONArray()getJSONObject(0);
+////                            Map maps = (Map)result;
+////                            JSONObject temp0 =result.getJSONObject("data").getJSONArray("forecast").getJSONObject(0);
+////                        JSONObject temp0 = result.getJSONObject("data").getJSONArray("forecast").getJSONObject(0);
+//                    }catch (JSONException e){
+//                        System.out.println("不符合json格式");
+//                    }
+                    break;
                 default:
                     break;
             }
@@ -463,20 +510,30 @@ public class MainActivity extends Activity {
         }
     }
     private void countVideoAndCurrent(){
-        current_ad_id=video_toPlay_list.get(posForVideo).trim();
-        if(adPlayStatistic.containsKey(current_ad_id)){
-            adPlayStatistic.put(current_ad_id,adPlayStatistic.get(current_ad_id)+1);
-        }else {
-            adPlayStatistic.put(current_ad_id,1);
-        }
+        current_video_ad_id=video_toPlay_list.get(posForVideo).trim();
+        countVideo();
     }
     private void countVideo(){
-        if(adPlayStatistic.containsKey(current_ad_id)){
-            adPlayStatistic.put(current_ad_id,adPlayStatistic.get(current_ad_id)+1);
+        if(adPlayStatistic.containsKey(current_video_ad_id)){
+            adPlayStatistic.put(current_video_ad_id,adPlayStatistic.get(current_video_ad_id)+1);
         }else {
-            adPlayStatistic.put(current_ad_id,1);
+            adPlayStatistic.put(current_video_ad_id,1);
         }
+        saveAdMap();
     }
+    private void countPicture(){
+        if(adPlayStatistic.containsKey(current_picture_ad_id)){
+            adPlayStatistic.put(current_picture_ad_id,adPlayStatistic.get(current_picture_ad_id)+1);
+        }else {
+            adPlayStatistic.put(current_picture_ad_id,1);
+        }
+        saveAdMap();
+    }
+    private void countPictureAndCurrent(){
+        current_picture_ad_id = picture_toPlay_list.get(posForPicture).trim();
+        countPicture();
+    }
+
     //更改播放文件
     // 循环播放一个视频列表中的视频
     public void setVideoList( ArrayList<String> new_file_list){
@@ -534,7 +591,7 @@ public class MainActivity extends Activity {
         videoview.stopPlayback();
         videoview.setVideoURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+fileName));
         videoview.start();
-        current_ad_id=fileName;
+        current_video_ad_id=fileName;
         countVideo();
         videoview.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
@@ -553,7 +610,7 @@ public class MainActivity extends Activity {
         }
         videoview.setVideoURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+file_name));
         videoview.start();
-        current_ad_id=file_name;
+        current_video_ad_id=file_name;
         countVideo();
         videoview.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
@@ -583,7 +640,7 @@ public class MainActivity extends Activity {
             public void onCompletion(MediaPlayer mediaPlayer) {
                 videoview.setVideoURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+file_name));
                 videoview.start();
-                current_ad_id=file_name;
+                current_video_ad_id=file_name;
                 countVideo();
                 videoview.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                     @Override
@@ -607,8 +664,6 @@ public class MainActivity extends Activity {
     //循环播放图片
 //    setPictureList
     public void setPictureList( ArrayList<String> new_file_list){
-//        videoview.onMeasure(100,100);
-//        videoview.onMeasure(10,20); 没有用
         posForPicture=0;
         picture_toPlay_list = new ArrayList<>(new_file_list);
         System.out.println("$$$$$$");
@@ -621,17 +676,47 @@ public class MainActivity extends Activity {
             setPictureTimer();
         }
     }
-    public void setPictureListRestart( ArrayList<String> new_file_list,int pos,int picture_time){
-        posForPicture=0;
-        picture_toPlay_list = new ArrayList<>(new_file_list);
-        System.out.println("$$$$$$");
-        System.out.println(picture_toPlay_list);
+    Handler pictureHandler = new Handler();
+
+    // 给不同图片设定不同时长
+    private  void setPictureListAndTime(ArrayList<String> picture_toPlay_list1,ArrayList<Integer> picture_times){
+//        pictureHandler.postDelayed(runnable, 1000);
+        picture_toPlay_list = new ArrayList<>(picture_toPlay_list1);
+        picture_toPlay_list_time = new ArrayList<>(picture_times);
+        if (picture_toPlay_list.size()<1){
+            System.out.println("文件列表中无文件");
+            return;
+        }
+        nextPic();
+    }
+    private void nextPic(){
+        if (posForPicture == picture_toPlay_list.size()) {
+            posForPicture = 0;
+        }
+        time1=System.currentTimeMillis();
+        countPictureAndCurrent();
+        imageview.setImageURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+picture_toPlay_list.get(posForPicture).trim()));
+        pictureHandler.removeCallbacks(runnable);
+        pictureHandler.postDelayed(runnable, picture_toPlay_list_time.get(posForPicture)*1000);
+        posForPicture++;
+    }
+    Runnable runnable = new Runnable() {
+        @Override
+        public void run() {
+            nextPic();
+//            System.out.println(adPlayStatistic.toString());
+        }
+    };
+    public void setPictureListRestart( ArrayList<String> picture_toPlay_list1,int pos,ArrayList<Integer> picture_toPlay_list_time){
+        picture_toPlay_list = new ArrayList<>(picture_toPlay_list1);
+        posForPicture =pos;
         if (picture_toPlay_list.size()<1){
             System.out.println("文件列表中无文件");
             return;
         }else {
             System.out.println("文件列表");
-            setPictureTimer2(pos,picture_time);
+            setPictureListAndTime(picture_toPlay_list1,picture_toPlay_list_time);
+//            setPictureTimer2(pos,picture_time);
         }
     }
     //播放下一个图片
@@ -670,6 +755,7 @@ public class MainActivity extends Activity {
         System.out.println("图片时间间隔="+picture_time);
         timerForPicture.schedule(timerTask, 0,picture_time*1000);
     }
+
     private void setPictureTimer2(int pos,int picture_time){
         System.out.println("时间间隔"+picture_time);
         if(timerForPicture!=null){
@@ -848,6 +934,10 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        //去除标题栏和状态栏
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_main_projector);
         //LayoutInflater inflater = getLayoutInflater();
 //        LayoutInflater inflater = LayoutInflater.from(this);
@@ -858,6 +948,7 @@ public class MainActivity extends Activity {
         SharedPreferences.Editor editor = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
         editor.putString("mac",mac);
         editor.apply();
+        Toast.makeText(MainActivity.this,loadString("adPlayStatistic.txt"),Toast.LENGTH_LONG).show();
         topicSubMac = topicSub+"/"+mac;
         topicSubList = new String[]{topicSubMac,topicSub,topicVolume,topicUpdateAd,topicPush};
         for(int i =0;i<topicSubList.length;i++){
@@ -867,13 +958,20 @@ public class MainActivity extends Activity {
         }
         topicResult=topicResult.replaceFirst("clientid",mac);
         topicStatus= topicStatus.replaceFirst("clientid",mac);
-
+        timerForPicture = new Timer();
+        textView =(TextView)findViewById(R.id.textView);
+        textView2 =(TextView)findViewById(R.id.textView2);
+        videoview = (VideoView) findViewById(R.id.videoView);
+        imageview = (RoundedImageView) findViewById(R.id.imageView);
+//        imageview.setImageURI(Uri.parse(getExternalFilesDir(null).toString()+ "/new2.jpg"));
+        weatherMap = initWeatherMap();
+        adPlayStatistic = new HashMap<>();
+        restart();
         mqttCallback = new MqttCallback() {
             @Override
             public void connectionLost(Throwable throwable) {
                 mqttIsConnect=false;
-                Message msg = new Message();
-                msg.arg1 = MQTT_STATE_LOST;
+                saveString("systemlog.txt","mqtt断线");
             }
             @Override
             public void messageArrived(String s, MqttMessage mqttMessage) throws Exception {
@@ -935,13 +1033,26 @@ public class MainActivity extends Activity {
                             message3.what = 10;
                             message3.obj =  content.split(":")[content.split(":").length-1];
                             handler.sendMessage(message3);
-                        }else if(content.startsWith("update_picture_list")){
+                        }else if(content.startsWith("update_picture_list1")) {
                             Message message3 = new Message();
                             message3.what = 14;
-                            message3.obj = content.split(":")[content.split(":").length-1];
+                            message3.obj = content.split(":")[content.split(":").length - 1];
                             handler.sendMessage(message3);
                             break;
-                        }else if(content.startsWith("delete_file_list")){
+                        }
+                        else if(content.startsWith("update_picture_list2")){
+                            Message message3 = new Message();
+                            message3.what = 20;
+                            message3.obj = content.split(":")[content.split(":").length-1];
+                            String tempPictureList = content.substring(21);
+                            System.out.println(tempPictureList);
+//
+                            message3.obj =tempPictureList;
+                            handler.sendMessage(message3);
+                            break;
+                        }
+
+                        else if(content.startsWith("delete_file_list")){
                             String deleteFileList = content.split(":")[content.split(":").length-1];
                             for(String fileTodelete : deleteFileList.split(",")){
                                 deleteSingleFile(getExternalFilesDir(null).toString()+"/"+fileTodelete);
@@ -1022,15 +1133,7 @@ public class MainActivity extends Activity {
             }
         };
 
-        timerForPicture = new Timer();
-        textView =(TextView)findViewById(R.id.textView);
-        textView2 =(TextView)findViewById(R.id.textView2);
-        videoview = (VideoView) findViewById(R.id.videoView);
-        imageview = (RoundedImageView) findViewById(R.id.imageView);
-//        imageview.setImageURI(Uri.parse(getExternalFilesDir(null).toString()+ "/new2.jpg"));
-        weatherMap = initWeatherMap();
-        adPlayStatistic = new HashMap<>();
-        restart();
+
         newMqttClient();
 //        for(int i=0;i<10;i++){
 //            pubResult(getCPURateDesc_All());
@@ -1042,6 +1145,8 @@ public class MainActivity extends Activity {
         setUpdateWeatherTimer();
         Toast.makeText(MainActivity.this,get_ip(MainActivity.this).split("\\.")[3],Toast.LENGTH_LONG);
         updateWeather(defaultCity);
+        test_mqtt();
+        testFunction();
     }
 
     @Override
@@ -1126,7 +1231,20 @@ public class MainActivity extends Activity {
     }
 
     private void restart(){
-
+        String mapString=loadString("adPlayStatistic.txt");
+        if(loadString("adPlayStatistic.txt")!=null){
+            System.out.println("重启加载map="+mapString);
+            mapString=mapString.substring(1, mapString.length()-1);
+            String[] strs=mapString.split(",");
+            adPlayStatistic= new HashMap<String, Integer>();
+            for (String string : strs) {
+                String key=string.split("=")[0].trim();
+                int value=Integer.parseInt(string.split("=")[1]);
+                adPlayStatistic.put(key, value);
+            }
+        } else {
+            System.out.println("adPlayStatistic文件不存在");
+        }
         SharedPreferences pref = getSharedPreferences("data_try1",MODE_PRIVATE);
         setLayoutSize(layout1,pref.getInt("layoutSize",90),pref.getInt("left_margin",0),pref.getInt("top_margin",0));
         pu_ip = pref.getString("pu_ip","not_set");
@@ -1135,8 +1253,18 @@ public class MainActivity extends Activity {
         updateWeather(defaultCity);
         video_toPlay_list = new ArrayList<>(Arrays.asList(pref.getString("video_toPlay_list","not_set").split(",")));
         picture_toPlay_list = new ArrayList<>(Arrays.asList(pref.getString("picture_toPlay_list","not_set").split(",")));
-        if(!pu_ip.equals("not_set")){
-//            test_sub();
+        ArrayList <String>temp_picture_toPlay_list_time = new ArrayList<>(Arrays.asList(pref.getString("picture_toPlay_list_time","not_set").split(",")));
+        picture_toPlay_list_time = new ArrayList<>();
+        if(temp_picture_toPlay_list_time!=null){
+            if(temp_picture_toPlay_list_time.get(0).equals("not_set")){
+                System.out.println("picture_toPlay_list"+picture_toPlay_list);
+            }else {
+                System.out.println(temp_picture_toPlay_list_time.get(0));
+                for (int i=0;i<temp_picture_toPlay_list_time.size();i++){
+                    picture_toPlay_list_time.add(Integer.parseInt(temp_picture_toPlay_list_time.get(i)));
+                }
+                setPictureListRestart(picture_toPlay_list,pref.getInt("posForPicture",0),picture_toPlay_list_time);
+            }
         }
         if(video_toPlay_list!=null){
             if(video_toPlay_list.get(0).equals("not_set")){
@@ -1151,18 +1279,14 @@ public class MainActivity extends Activity {
         }else {
             System.out.println("video_toPlay_list = null");
         }
-        if(picture_toPlay_list.get(0).equals("not_set")){
-            System.out.println("picture_toPlay_list"+picture_toPlay_list);
-        }else {
-            picture_time = pref.getInt("picture_time",2);
-            setPictureListRestart(picture_toPlay_list,pref.getInt("posForPicture",0),pref.getInt("picture_time",2));
-//                    setPictureList(picture_toPlay_list);
-        }
+
+//        JSONObject a =new JSONObject(mapString);
+//        Object succesResponse = JSON.parse(mapString);    //先转换成Object
+//        adPlayStatistic = (HashMap<String, Integer>) succesResponse;
+
+
 //        setLayoutPosition(layout1);
-
 //            posForPicture = pref.getInt("posForPicture",0);
-
-
 //            ArrayList<String> video_toPlay_list_t = new ArrayList<>();
 //            video_toPlay_list_t.add("10.mp4");
 //            setVideoList(video_toPlay_list_t);
@@ -1296,29 +1420,19 @@ public class MainActivity extends Activity {
 
     }
     private String getProjectorInfo(){
-        String re="{\"projector_mac\"";
         String result ="{\"projector_mac\":\""+mac+"\",\"cpu_usage_rate\":\""+getCPURateDesc_All()+"\",\"memory_usage_rate\":\""+getRamUseRate()+"\",\"disk_usage_rate\":\""+getRomUseRate()+"\",\"inner_ip\":\""+get_ip(MainActivity.this)+"\"," +
                 "\"volume\":\""+getSystemVolume(MainActivity.this)+"\"," +
                 "\"light_machine\":\""+light_machine+"\"," +
-                "\"current_ad_id\":\""+current_ad_id+"\"," +
+                "\"current_video_ad_id\":\""+current_video_ad_id+"\"," +
+                "\"current_picture_ad_id\":\""+current_picture_ad_id+"\"," +
                 "\"ad_play_statistic\":[" +
-                "{" +
-                "\"ad_id\":\"xxxx\"," +
-                "\"play_num\":\"xxx\"," +
-                "\"type\":\"xxx\"" +
-                "}," +
-                "{" +
-                "\"ad_id\":\"xxxx\"," +
-                "\"play_num\":\"xxx\"," +
-                "\"type\":\"xxx\"" +
-                "}," +
-                "{" +
-                "\"ad_id\":\"xxxx\"," +
-                "\"play_num\":\"xxx\",\n" +
-                "\"type\":\"xxx\"\n" +
-                "}\n" +
-                "]\n" +
-                "}"+adPlayStatistic.toString();
+                "{" ;
+        System.out.println(result);
+        for(String k:adPlayStatistic.keySet()){
+            result+="\"ad_id\":\""+k+"\",\"play_num\":\""+adPlayStatistic.get(k)+"\",";
+        }
+        result=result.substring(0,result.length()-1);
+        result+="}]}";
         return result;
     }
     private void newMqttClient(){
@@ -1372,7 +1486,7 @@ public class MainActivity extends Activity {
                 pubStatus(getProjectorInfo());
             }
         };
-        timerForHeartBeat.schedule(timerTask, 0,30*1000);
+        timerForHeartBeat.schedule(timerTask, 0,1*1000);
     }
     private void newMqttClient2(){
         String host = mqttIp;
@@ -1434,6 +1548,107 @@ public class MainActivity extends Activity {
         }).start();
 
 
+    }
+    private void testFunction(){
+        ArrayList<String> list1= new ArrayList<>();
+        list1.add("png1.png");
+        list1.add("png2.png");
+        list1.add("png3.png");
+        ArrayList<Integer> list2= new ArrayList<>();
+        list2.add(2);
+        list2.add(4);
+        list2.add(6);
+        setPictureListAndTime(list1,list2);
+        videoview.setVideoURI(Uri.parse("android.resource://"+getPackageName()+"/raw/one_min"));
+        videoview.start();
+        System.out.println("************");
+        System.out.println(getProjectorInfo());
+
+    }
+     //周期性保存统计map
+    private void saveAdMap(){
+        saveString("adPlayStatistic.txt",adPlayStatistic.toString());
+//        System.out.println("成功保存"+adPlayStatistic.toString());
+//        System.out.println(loadString("adPlayStatistic.txt"));
+    }
+    public void saveString(String filename,String inputText){
+        FileOutputStream out=null;
+        BufferedWriter writer=null;
+        try {
+            //getExternalFilesDir(null).toString()+"/"+
+            out=openFileOutput(filename, Context.MODE_PRIVATE);
+            writer=new BufferedWriter(new OutputStreamWriter(out));
+            writer.write(inputText);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }finally {
+            if(writer!=null){
+                try {
+                    writer.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+    public String loadString(String filename){
+        FileInputStream in =null;
+        BufferedReader reader=null;
+        StringBuilder content=new StringBuilder();
+        try {
+            in=openFileInput(filename);
+            reader=new BufferedReader(new InputStreamReader(in));
+            String line="";
+            while ((line=reader.readLine())!=null){
+                content.append(line);
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }finally {
+            if(reader!=null){
+                try {
+                    reader.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return content.toString();
+    }
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        boolean onKeyDown = super.onKeyDown(keyCode, event);
+//        tv_keycode.setText("des = " + KeyEvent.keyCodeToString(keyCode) + " : code = " + keyCode);
+        System.out.println("按键###########");
+        System.out.println(event);
+        int tempPosForPicture=0;
+        switch (event.getKeyCode()){
+            case KEYCODE_1:
+                videoview.pause();
+                time2 = System.currentTimeMillis();
+                pictureHandler.removeCallbacks(runnable);
+                System.out.println("关闭");
+                System.out.println(posForPicture);
+                break;
+            case KEYCODE_2:
+                videoview.start();
+//                nextPic();
+                posForPicture--;
+                imageview.setImageURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+picture_toPlay_list.get(posForPicture).trim()));
+                pictureHandler.removeCallbacks(runnable);
+                pictureHandler.postDelayed(runnable,picture_toPlay_list_time.get(posForPicture)*1000-(time2-time1));
+                System.out.println("开始");
+                System.out.println(time1);
+                System.out.println(time2);
+                System.out.println(posForPicture);
+//                        pictureHandler.postDelayed(runnable, picture_toPlay_list_time.get(posForPicture)*1000);
+                break;
+        }
+        return onKeyDown;
     }
 }
 
