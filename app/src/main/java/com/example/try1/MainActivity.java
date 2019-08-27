@@ -132,15 +132,10 @@ public class MainActivity extends Activity {
     private ArrayList<String> picture_toPlay_list;
     private ArrayList<Integer> picture_toPlay_list_time;
     private int picture_time=2;//每张图片的显示时间
-    private Button button;
-    private Button button2;
-    private String pu_ip;
     private VideoView videoview;
     private RoundedImageView imageview;
     private RoundedImageView imageview2;
     private View layout_video_picture;
-    private View layout_video_picture1;
-    private View layout_video_picture2;
     private String locAddress;
     private int cutlineVideo_times=0;
     private int cutlineVideo_times2=0;
@@ -252,7 +247,7 @@ public class MainActivity extends Activity {
                 case 5:
                     break;
                 case 6:
-                    pu_ip =msg.obj.toString();
+
                     break;
                 case 7:
                     //style 1   ，图片+视频
@@ -966,7 +961,7 @@ public class MainActivity extends Activity {
 //        imageview.setImageURI(Uri.parse(getExternalFilesDir(null).toString()+ "/new2.jpg"));
         weatherMap = initWeatherMap();
         adPlayStatistic = new HashMap<>();
-        restart();
+//        restart();
         mqttCallback = new MqttCallback() {
             @Override
             public void connectionLost(Throwable throwable) {
@@ -1247,7 +1242,7 @@ public class MainActivity extends Activity {
         }
         SharedPreferences pref = getSharedPreferences("data_try1",MODE_PRIVATE);
         setLayoutSize(layout1,pref.getInt("layoutSize",90),pref.getInt("left_margin",0),pref.getInt("top_margin",0));
-        pu_ip = pref.getString("pu_ip","not_set");
+
 //        mac = pref.getString("mac",get_mac(MainActivity.this));
         defaultCity = pref.getString("defaultCity","西安");
         updateWeather(defaultCity);
@@ -1559,10 +1554,21 @@ public class MainActivity extends Activity {
         list2.add(4);
         list2.add(6);
         setPictureListAndTime(list1,list2);
-        videoview.setVideoURI(Uri.parse("android.resource://"+getPackageName()+"/raw/one_min"));
+//        videoview.setVideoURI(Uri.parse("android.resource://"+getPackageName()+"/raw/one_min"));
+//        videoview.start();
+//        videoview.setVideoURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+fileName));
+        videoview.setVideoURI(Uri.parse("android.resource://"+getPackageName()+"/raw/a10s"));
         videoview.start();
+        videoview.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+            @Override
+            public void onCompletion(MediaPlayer mediaPlayer) {
+//                mediaPlayer.setLooping(true);
+                videoview.start();
+//                countVideo();
+            }
+        });
         System.out.println("************");
-        System.out.println(getProjectorInfo());
+//        System.out.println(getProjectorInfo());
 
     }
      //周期性保存统计map
