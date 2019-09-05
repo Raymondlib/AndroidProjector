@@ -20,8 +20,6 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true">
-         />
-
         <receiver
             android:name=".MyReceiver1"
             android:enabled="true"
@@ -53,8 +51,10 @@
         <!-- <action android:name="android.app.action.DEVICE_ADMIN_ENABLED"/> -->
         <!-- </intent-filter> -->
         <!-- </receiver> -->
-        <activity android:name=".learn" />
-        <activity android:name=".MainActivity">
+
+        <activity
+            android:name=".MainActivity"
+            android:screenOrientation="sensor">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

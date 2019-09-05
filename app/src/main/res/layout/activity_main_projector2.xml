@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+
+    android:layout_width="match_parent"
+    android:orientation="vertical"
+    android:layout_height="match_parent"
+    android:background="#000000">
+
+<androidx.constraintlayout.widget.ConstraintLayout
+    android:id="@+id/constraintlayout1"
+    android:layout_gravity="center"
+    android:layout_centerInParent="true"
+    android:layout_width="550dp"
+    android:layout_height="200dp"
+    android:background="@drawable/corner4"
+
+    app:layout_constraintHorizontal_bias="50"
+    app:layout_constraintLeft_toLeftOf="parent"
+    app:layout_constraintBottom_toBottomOf="parent"
+    app:layout_constraintRight_toRightOf="parent"
+    app:layout_constraintTop_toTopOf="parent"
+    tools:context=".MainActivity"
+    >
+    <androidx.cardview.widget.CardView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+
+        android:id="@+id/cardView"
+        app:layout_constraintHeight_percent="0.999"
+        app:layout_constraintHorizontal_bias="0"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0"
+        app:layout_constraintWidth_percent="0.66"
+        app:cardCornerRadius="10dp">
+    <VideoView
+        android:id="@+id/videoView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        android:layout_gravity="center"
+         />
+
+
+
+    </androidx.cardview.widget.CardView>
+
+    <com.makeramen.roundedimageview.RoundedImageView
+        android:id="@+id/imageView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintHeight_percent="0.675"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintLeft_toRightOf="@id/cardView"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="1.0"
+        app:layout_constraintBottom_toTopOf="@id/textView"
+        android:scaleType="fitXY"
+        android:src="@drawable/zhengfangxing"
+        app:riv_border_color="#00000000"
+        app:riv_border_width="2dip"
+        app:riv_corner_radius="10dip" />
+
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+
+        android:text="重拳出击 扫黑除恶"
+        android:textSize="20sp"
+        android:textColorHighlight="@color/red"
+        android:gravity="center"
+        android:paddingRight="5dp"
+        android:paddingLeft="15dp"
+
+        android:textColor="@color/red"
+        tools:layout_editor_absoluteX="0dp"
+        tools:layout_editor_absoluteY="112dp"
+
+        android:background="@drawable/corner2_left"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf ="@id/imageView"
+        app:layout_constraintLeft_toRightOf="@id/cardView"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/imageView"/>
+
+    <!--<TextView-->
+        <!--android:id="@+id/textView2"-->
+        <!--android:layout_width="0dp"-->
+        <!--android:layout_height="0dp"-->
+
+        <!--android:textColor="@color/fontColor"-->
+
+        <!--android:text=""-->
+        <!--android:textSize="20sp"-->
+
+        <!--android:paddingRight="80dp"-->
+        <!--android:paddingLeft="10dp"-->
+
+        <!--tools:layout_editor_absoluteX="0dp"-->
+        <!--tools:layout_editor_absoluteY="112dp"-->
+        <!--app:layout_constraintWidth_percent="0.3"-->
+        <!--android:background="#1E90FF"-->
+        <!--app:layout_constraintBottom_toBottomOf="parent"-->
+        <!--app:layout_constraintLeft_toRightOf="@id/textView"-->
+        <!--app:layout_constraintRight_toLeftOf="@+id/imageView2"-->
+        <!--app:layout_constraintTop_toBottomOf="@id/cardView"-->
+
+        <!--/>-->
+
+    <!--<com.makeramen.roundedimageview.RoundedImageView xmlns:app="http://schemas.android.com/apk/res-auto"-->
+        <!--android:id="@+id/imageView2"-->
+        <!--android:layout_width="0dp"-->
+        <!--android:layout_height="0dp"-->
+        <!--android:background="@drawable/corner2_right"-->
+        <!--android:src="@drawable/zhengfangxing"-->
+        <!--tools:layout_editor_absoluteX="226dp"-->
+        <!--tools:layout_editor_absoluteY="75dp"-->
+        <!--app:layout_constraintBottom_toBottomOf="parent"-->
+        <!--app:layout_constraintLeft_toRightOf="@id/textView2"-->
+        <!--app:layout_constraintRight_toLeftOf="@+id/imageView"-->
+        <!--app:layout_constraintTop_toBottomOf="@id/cardView"/>-->
+
+</androidx.constraintlayout.widget.ConstraintLayout>
+
+</RelativeLayout>
