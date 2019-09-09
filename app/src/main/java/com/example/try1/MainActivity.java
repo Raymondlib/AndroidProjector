@@ -127,17 +127,16 @@ public class MainActivity extends Activity {
     public static final int MQTT_STATE_FAIL=1;
     public static final int MQTT_STATE_LOST=2;
     public static final int MQTT_STATE_RECEIVE=3;
-    public final String topicData="ddzl/projector/data";
-    public final String topicSub="ddzl/broker/projector";
-    public final String topicPub="ddzl/projector/broker";
+    public String topicSub="ddzl/broker/projector";
+    public String topicPub="ddzl/projector/broker";
     String topicResult = "ddzl/projector/broker/clientid/exec/result";
     String topicError = "ddzl/projector/broker/clientid/exec/error";
     String topicVolume = "ddzl/broker/projector/clientid/order/msg";
     String topicUpdateAd ="ddzl/broker/projector/clientid/update_advertisement";
     String topicStatus = "ddzl/projector/broker/clientid/device_status";
     String topicPush ="ddzl/broker/projector/clientid/advertise/push";
-    private String defaultWifiSSID ="Tenda_6C2B00";
-    private String defaultWifiPWD ="wifimimadasen2019datacenter";
+    private String defaultWifiSSID ="ddzl";
+    private String defaultWifiPWD ="ddzl2019";
     private String defaultWifiTYPE ="WPA2";
     public String topicPubMac;
     public String topicSubMac;
@@ -149,6 +148,7 @@ public class MainActivity extends Activity {
     private String light_machine="enable";
     private String current_video_ad_id;
     private String current_picture_ad_id;
+    private String wordAd;
     private HashMap<String,Integer> adPlayStatistic;
     private int picCutInTimes= 0;
     private String picCutInName;
@@ -342,7 +342,9 @@ public class MainActivity extends Activity {
                         tempPicList.add(s.split(":")[0]);
                         tempPicTimeList.add(Integer.parseInt(s.split(":")[s.split(":").length-1]));
                     }
-
+                    System.out.println("why");
+                    System.out.println(tempPicList);
+                    System.out.println(tempPicTimeList);
                     SharedPreferences.Editor editor = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
                     editor.putString("picture_toPlay_list",tempPicList.toString().substring(1,tempPicList.toString().length()-1));
                     editor.putString("picture_toPlay_list_time",tempPicTimeList.toString().substring(1,tempPicTimeList.toString().length()-1));
@@ -375,30 +377,42 @@ public class MainActivity extends Activity {
                     }else {pubResult("命令格式错误");}
                     break;
                 case 23:
+                    wordAd = msg.obj.toString();
+                    SharedPreferences.Editor editor3 = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
+                    editor3.putString("wordAd",wordAd);
+                    editor3.apply();
                     textView.setText(msg.obj.toString());
                     System.out.println();
                     break;
                 case 24:
-                    switch (msg.obj.toString()){
+                    String tempOrder =  msg.obj.toString();
+                    switch (tempOrder){
                         case "testFunction":
                             testFunction();
                             break;
-                        case "getAllP":
-                            getAllP();
+                        case "getAllParas":
+                            getAllParas();
                             break;
                         case "getErrorLog":
                             pubError(getErrorLog());
                             break;
                         default:
+                            if(tempOrder.startsWith("setAnyParas")){
+                                String Separator = "::";
+                                if(tempOrder.split(Separator).length==3){
+                                    setAnyParas(tempOrder.split(Separator)[1],tempOrder.split(Separator)[2]);
+                                }
+                            }
                             break;
                     }
 
                     break;
                 case 25:
                     //图片不打断插入
-                    if(msg.obj.toString().split(":").length==3){
-                        String tempPicName = msg.obj.toString().split(":")[1];
-                        String tempPicNum = msg.obj.toString().split(":")[2];
+                    String Separator = ":";
+                    if(msg.obj.toString().split(Separator).length==3){
+                        String tempPicName = msg.obj.toString().split(Separator)[1];
+                        String tempPicNum = msg.obj.toString().split(Separator)[2];
                         setCutlinePictureNotInterrupt(tempPicName,tempPicNum);
                     }
                     break;
@@ -548,11 +562,11 @@ public class MainActivity extends Activity {
         saveAdMap();
     }
     private void countPictureAndCurrent(){
-        System.out.println("posForPicture:"+posForPicture);
-        System.out.println("图片名"+picture_toPlay_list.get(posForPicture));
-        System.out.println("时长"+picture_toPlay_list_time.get(posForPicture));
-        System.out.println(picture_toPlay_list.toString());
-        System.out.println(picture_toPlay_list_time.toString());
+//        System.out.println("posForPicture:"+posForPicture);
+//        System.out.println("图片名"+picture_toPlay_list.get(posForPicture));
+//        System.out.println("时长"+picture_toPlay_list_time.get(posForPicture));
+//        System.out.println(picture_toPlay_list.toString());
+//        System.out.println(picture_toPlay_list_time.toString());
         current_picture_ad_id = picture_toPlay_list.get(posForPicture).trim();
 //        pubResult("posForPicture:"+posForPicture+"\n"+"图片名"+picture_toPlay_list.get(posForPicture)+"\n"+"时长"+picture_toPlay_list_time.get(posForPicture)+"\n"+picture_toPlay_list.toString());
         countPicture();
@@ -678,9 +692,8 @@ public class MainActivity extends Activity {
         if(posForVideo==video_toPlay_list.size()){posForVideo=0;}
         File file = new File(getExternalFilesDir(null).toString()+"/"+video_toPlay_list.get(posForVideo).trim());
         if (!file.exists()) {
-            if(new File("android.resource://"+getPackageName()+"/raw/"+video_toPlay_list.get(posForVideo).trim()).exists()){
-                videoview.setVideoURI(Uri.parse("android.resource://"+getPackageName()+"/raw/"+video_toPlay_list.get(posForVideo).trim().split("\\.")[0]));
-            }else {pubResult(video_toPlay_list.get(posForVideo)+":not_exists");}
+            videoview.setVideoURI(Uri.parse("android.resource://"+getPackageName()+"/raw/"+video_toPlay_list.get(posForVideo).trim().split("\\.")[0]));
+            pubResult(video_toPlay_list.get(posForVideo)+":not_exists");
         }else {
             videoview.setVideoURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+video_toPlay_list.get(posForVideo).trim()));
         }
@@ -690,10 +703,13 @@ public class MainActivity extends Activity {
         if(posForVideo==video_toPlay_list.size()){posForVideo=0;}
         File file = new File(getExternalFilesDir(null).toString()+"/"+fileName);
         if (!file.exists()) {
-            if(new File("android.resource://"+getPackageName()+"/raw/"+fileName).exists()){
-                videoview.setVideoURI(Uri.parse("android.resource://"+getPackageName()+"/raw/"+fileName.split("\\.")[0]));
-            }else {pubResult(video_toPlay_list.get(posForVideo)+":not_exists");}
+            System.out.println("开始播放文件2"+fileName);
+            videoview.setVideoURI(Uri.parse("android.resource://"+getPackageName()+"/raw/"+fileName.split("\\.")[0]));
+//            if(new File("android.resource://"+getPackageName()+"/raw/"+fileName).exists()){
+//                videoview.setVideoURI(Uri.parse("android.resource://"+getPackageName()+"/raw/"+fileName.split("\\.")[0]));
+//            }else {pubResult(video_toPlay_list.get(posForVideo)+":not_exists");}
         }else {
+            System.out.println("开始播放文件"+fileName);
             videoview.setVideoURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+fileName));
         }
         videoview.start();
@@ -738,21 +754,25 @@ public class MainActivity extends Activity {
     //插队播放一个视频, n次,不打断当前播放视频
     public String setCutlineVideo2(final String file_name,int times){
         cutlineVideo_times2 =times;
-        if(!getFileNameList().contains(file_name)){
-            return file_name+"fileNotFound";
-        }
+//        if(!getFileNameList().contains(file_name)){
+//            return file_name+"fileNotFound";
+//        }
+        System.out.println("cutlineVideo_times2"+cutlineVideo_times2);
         videoview.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mediaPlayer) {
 //                checkVideoFile();
-                videoview.setVideoURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+file_name));
-                videoview.start();
+//                videoview.setVideoURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+file_name));
+//                videoview.start();
+                checkVideoFileWithName(file_name);
                 current_video_ad_id=file_name;
                 countVideo();
                 videoview.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                     @Override
                     public void onCompletion(MediaPlayer mediaPlayer) {
-                        if(cutlineVideo_times2-->1){
+                        cutlineVideo_times2--;
+//                        System.out.println("剩余播放次数"+cutlineVideo_times2);
+                        if(cutlineVideo_times2>0){
                             videoview.start();
                             countVideo();
                         }else {
@@ -783,12 +803,68 @@ public class MainActivity extends Activity {
     }
     Handler pictureHandler = new Handler();
 
-    private String getAllP(){
+    private String getAllParas(){
         String re="";
-        re+= "picture_toPlay_list"+picture_toPlay_list.toString()+"\n";
-        re+= "picture_toPlay_list_time"+picture_toPlay_list_time.toString()+"\n";
+        re+= "\"mac\":"+"\""+mac+"\",";
+        re+= "\"picture_toPlay_list\":"+"\""+picture_toPlay_list.toString()+"\",";
+        re+= "\"picture_toPlay_list_time\":"+"\""+picture_toPlay_list_time.toString()+"\",";
+        re+= "\"mqttIp\":"+"\""+mqttIp+"\",";
+        re+= "\"mqttUsername\":"+"\""+mqttUsername+"\",";
+        re+= "\"mqttPassword\":"+"\""+mqttPassword+"\",";
+        re+= "\"topicResult\":"+"\""+topicResult+"\",";
+        re+= "\"topicError\":"+"\""+topicError+"\",";
+        re+= "\"defaultWifiSSID\":"+"\""+defaultWifiSSID+"\",";
+        re+= "\"defaultWifiPWD\":"+"\""+defaultWifiPWD+"\",";
+        re+= "\"video_toPlay_list\":"+"\""+video_toPlay_list.toString()+"\",";
+        re+= "\"defaultCity\":"+"\""+defaultCity+"\",";
         pubResult(re);
         return re;
+    }
+//    private void saveParasToLocal(String ){
+//        SharedPreferences.Editor editor2 = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
+//        editor2.putString("video_toPlay_list",video_temp_list.toString().substring(1,video_toPlay_list.toString().length()-1));
+//        editor2.apply();
+//    }
+
+    private void setAnyParas(String paraName,String newValue){
+        SharedPreferences.Editor editor2 = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
+        switch (paraName){
+            case "mqttIp": mqttIp = newValue;editor2.putString(paraName,mqttIp);break;
+            case "mqttUsername": mqttUsername = newValue;editor2.putString(paraName,mqttUsername);break;
+            case "mqttPassword": mqttPassword = newValue;editor2.putString(paraName,mqttPassword);break;
+            case "topicResult": topicResult = newValue;editor2.putString(paraName,topicResult);break;
+            case "topicError": topicError = newValue;editor2.putString(paraName,topicError);break;
+            case "topicVolume": topicVolume = newValue;editor2.putString(paraName,topicVolume);break;
+            case "topicPush": topicPush = newValue;editor2.putString(paraName,topicPush);break;
+            case "topicUpdateAd": topicUpdateAd = newValue;editor2.putString(paraName,topicUpdateAd);break;
+            case "topicStatus": topicStatus = newValue;editor2.putString(paraName,topicStatus);break;
+            case "defaultCity": defaultCity = newValue;editor2.putString(paraName,defaultCity);break;
+            case "defaultWifiSSID": defaultWifiSSID = newValue;editor2.putString(paraName,defaultWifiSSID);break;
+            case "defaultWifiPWD": defaultWifiPWD = newValue;editor2.putString(paraName,defaultWifiPWD);break;
+            case "defaultWifiTYPE": defaultWifiTYPE = newValue;editor2.putString(paraName,defaultWifiTYPE);break;
+            default: break;
+        }
+        editor2.apply();
+    }
+
+    public void reloadParas(){
+        SharedPreferences pref = getSharedPreferences("data_try1",MODE_PRIVATE);
+        mqttIp = pref.getString("mqttIp","tcp://39.100.88.26:1883");
+        mqttUsername = pref.getString("mqttUsername","xupeng");
+        mqttPassword = pref.getString("mqttPassword","000");
+        topicResult = pref.getString("topicResult","ddzl/projector/broker/"+mac+"/exec/result");
+        topicError = pref.getString("topicError","ddzl/projector/broker/"+mac+"/exec/error");
+        topicVolume = pref.getString("topicVolume","ddzl/broker/projector/"+mac+"/order/msg");
+        topicUpdateAd = pref.getString("topicUpdateAd","ddzl/broker/projector/"+mac+"/update_advertisement");
+        topicStatus = pref.getString("topicStatus","ddzl/projector/broker/"+mac+"/device_status");
+        topicPush = pref.getString("topicPush","ddzl/broker/projector/"+mac+"/advertise/push");
+        defaultCity = pref.getString("defaultCity","西安");
+        defaultWifiSSID = pref.getString("defaultWifiSSID","ddzl");
+        defaultWifiPWD = pref.getString("defaultWifiPWD","ddzl2019");
+        defaultWifiTYPE = pref.getString("defaultWifiTYPE","WPA2");
+        wordAd = pref.getString("wordAd","垃圾分类，从我做起");
+        textView.setText(wordAd);
+
     }
     //播放两个目录中的图片文件，优先在app file=目录中找，没找到就去找raw目录，再没找到就上报异常
     private  void setPictureListAndTime(ArrayList<String> picture_toPlay_list1,ArrayList<Integer> picture_times){
@@ -806,7 +882,7 @@ public class MainActivity extends Activity {
             File file = new File(getExternalFilesDir(null).toString()+"/"+picCutInName.trim());
             if (!file.exists()) {
                 pubResult(picCutInName+" not exist");
-//                imageview.setImageURI(Uri.parse("android.resource://"+getPackageName()+"/raw/"+picCutInName.trim().split("\\.")[0]));
+                imageview.setImageURI(Uri.parse("android.resource://"+getPackageName()+"/raw/"+picCutInName.trim().split("\\.")[0]));
             }else {
                 imageview.setImageURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+picCutInName.trim()));
             }
@@ -1100,7 +1176,7 @@ public class MainActivity extends Activity {
         SharedPreferences.Editor editor = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
         editor.putString("mac",mac);
         editor.apply();
-        Toast.makeText(MainActivity.this,loadString("adPlayStatistic.txt"),Toast.LENGTH_LONG).show();
+//        Toast.makeText(MainActivity.this,loadString("adPlayStatistic.txt"),Toast.LENGTH_LONG).show();
         topicSubMac = topicSub+"/"+mac;
         topicSubList = new String[]{topicSubMac,topicSub,topicVolume,topicUpdateAd,topicPush};
         for(int i =0;i<topicSubList.length;i++){
@@ -1121,8 +1197,8 @@ public class MainActivity extends Activity {
                 videoview.stopPlayback(); //播放异常，则停止播放，防止弹窗使界面阻塞
                 Log.d("视频","视频无法播放");
                 nextVideo2();//跳过当前视频，播放下一个
-                pubError("video can't play");
-                saveErrorLog(getTime()+"视频无法播放");
+//                pubError("video can't play");
+                saveErrorLog("视频无法播放");
                 return true;
             }
         });
@@ -1142,184 +1218,209 @@ public class MainActivity extends Activity {
             public void messageArrived(String s, MqttMessage mqttMessage) throws Exception {
                 Message msg = new Message();
                 msg.arg1 = MQTT_STATE_RECEIVE;
-                String content0 = new String(mqttMessage.getPayload(),"GB2312");
-                System.out.println("topic=" + s + "  接收mqtt：" + content0);
-//                final String topicSubFinal = (topicSub1) + get_mac(MainActivity.this);
-                for(String content:content0.split("\\n")){
-                    System.out.println("order1"+content);
-                    switch (content) {
-                        case "getErrorLog":
-                            Message message7 =new Message();
-                            message7.what =24;
-                            message7.obj= content;
-                            handler.sendMessage(message7);
-                            break;
-                        case "start_video":
-                            Message message1 = new Message();
-                            message1.what = 0;
-                            message1.obj = "start_video";
-                            handler.sendMessage(message1);
-                            break;
-                        case "pause_video":
-                            Message message2 = new Message();
-                            message2.what = 0;
-                            message2.obj = "pause_video";
-                            handler.sendMessage(message2);
-                            break;
-                        case "close_light":
-                            close_light();
-                            light_machine= "disable";
-                            pubResult("关闭光机成功");
-                            break;
-                        case "open_light":
-                            open_light();
-                            light_machine= "enable";
-                            pubResult("打开光机成功");
-                            break;
-                        case "get_file_list":
-                            pubResult(getFileNameList().toString()+"["+getFreeSize()+"]");
-                            break;
-                        case "get_video_list":
-                            //视频播放列表
-                            if (video_toPlay_list == null) {
-                                pubResult("video_toPlay_list is null");
-                            } else {
-                                pubResult(video_toPlay_list.toString());
+//                { "mac":"XX:XX","order":"",}
+                String content0 = new String(mqttMessage.getPayload(),"GB2312");//GB2312
+                String mac="" ;
+                String order ="";
+                boolean macMatch =false;
+                if(s.equals(topicSub)){
+                    //统一命令
+                    try {
+                        JSONObject result = new JSONObject(content0);
+                        order = result.getString("order");
+                    }catch (JSONException e){
+                        saveErrorLog("mqtt接收内容非json格式");
+                        e.printStackTrace();
+                    }
+                    macMatch =true;
+                }else {
+                    try {
+                        JSONObject result = new JSONObject(content0);
+                        mac = result.getString("mac");
+                        order = result.getString("order");
+                    }catch (JSONException e){
+                        saveErrorLog("mqtt接收内容非json格式");
+                        e.printStackTrace();
+                    }
+                    System.out.println("topic=" + s + "  接收mqtt：" + content0);
+                    switch (mac.length()){
+                        case 12:
+                            if(mac.equals(get_mac(MainActivity.this))){
+                                macMatch=true;
                             }
                             break;
-                        case "get_picture_list":
-                            if(picture_toPlay_list==null){
-                                pubResult("picture_toPlay_list is null");
-                            }else {
-                                pubResult(picture_toPlay_list.toString());
+                        case 17:
+                            if(mac.replace(":","").equals(get_mac(MainActivity.this))){
+                                macMatch=true;
+                            }else if(mac.replace("-","").equals(get_mac(MainActivity.this))) {
+                                macMatch=true;
                             }
                             break;
-                        case "reboot":
-                            reboot();
-                            break;
-                        default:
-                            if (content.startsWith("update_video_list")) {
-                                Message message3 = new Message();
-                                message3.what = 10;
-                                message3.obj =  content.split(":")[content.split(":").length-1];
-                                handler.sendMessage(message3);
-                            }
-                            else if(content.startsWith("update_picture_list")) {
-                                Message message3 = new Message();
-                                message3.what = 20;
-                                message3.obj = content.split(":")[content.split(":").length - 1];
-                                String tempPictureList = content.substring(20);//{a.jpg:4,b.jpg:5}
-                                message3.obj = tempPictureList;
-                                handler.sendMessage(message3);
-                                break;
-                            }
-                            else if(content.startsWith("delete_file_list")){
-                                String deleteFileList = content.split(":")[content.split(":").length-1];
-                                for(String fileTodelete : deleteFileList.split(",")){
-                                    deleteSingleFile(getExternalFilesDir(null).toString()+"/"+fileTodelete);
-                                }
-                            }else if(content.startsWith("change_system_volume")){
-                                Message message3 = new Message();
-                                message3.what = 9;
-                                message3.obj = content.split(":")[content.split(":").length-1];
-                                handler.sendMessage(message3);
-                            }else if (content.startsWith("set_single_video")){
-                                Message message5 = new Message();
-                                message5.what = 11;
-                                message5.obj = content.split(":")[content.split(":").length-1];
-                                handler.sendMessage(message5);
-                            }else if(content.startsWith("change_layout")){
-                                Message message6 = new Message();
-                                message6.what = 12;
-                                message6.obj = content.split(":")[content.split(":").length-1];
-                                handler.sendMessage(message6);
-                            }
-                            else if(content.startsWith("set_cut_line_videoNotInterrupt")){
-                                Message message6 = new Message();
-                                message6.what = 17;
-                                message6.obj = content;
-                                handler.sendMessage(message6);
-                            }
-                            else if(content.startsWith("set_cut_line_video")){
-                                Message message6 = new Message();
-                                message6.what = 16;
-                                message6.obj = content;
-                                handler.sendMessage(message6);
-                            }else if(content.startsWith("set_cut_line_pictureNotInterrupt")){
-                                Message message6 = new Message();
-                                message6.what = 25;
-                                message6.obj = content;
-                                handler.sendMessage(message6);
-                            } else if(content.startsWith("set_cut_line_picture")){
-                                Message message6 = new Message();
-                                message6.what = 26;
-                                message6.obj = content;
-                                handler.sendMessage(message6);
-                            }
-                            else if(content.startsWith("change_city_")){
-                                defaultCity=content.split("_")[content.split("_").length-1];
-                                SharedPreferences.Editor editor = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
-                                editor.putString("defaultCity",defaultCity);
-                                editor.apply();
-                                updateWeather(defaultCity);
-//                        }else if(content.startsWith("set_picture_time_")){
-//                            picture_time = Integer.parseInt(content.split("_")[content.split("_").length-1]);
-//                            SharedPreferences.Editor editor = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
-//                            editor.putInt("picture_time",picture_time);
-//                            editor.apply();
-//                            setPictureTimer();
-                            }else if(content.startsWith("set_layoutsize")){
-                                Message message6 = new Message();
-                                message6.what = 2;
-                                message6.obj = (content.split("_")[content.split("_").length-1]);
-                                handler.sendMessage(message6);
-                            }else if(content.startsWith("set_qrcode")){
-                                //二维码图片
-                                Message message6 = new Message();
-                                message6.what = 3;
-                                message6.obj = content.split(":")[content.split(":").length-1];
-                                handler.sendMessage(message6);
-                            }else if(content.startsWith("download")){
-                                Message message6 =new Message();
-                                message6.what =21;
-                                message6.obj= content.substring(8);
-                                handler.sendMessage(message6);
-                            }else if(content.startsWith("connectWifi")){
-                                Message message6 =new Message();
-                                message6.what =22;
-                                message6.obj= content.substring(11);
-                                handler.sendMessage(message6);
-                            }else if(content.startsWith("set_word")){
+                    }
+                    System.out.println(mac);
+                    System.out.println(get_mac(MainActivity.this));
+                    System.out.println(order);
+                    System.out.println(macMatch);
+                }
 
-                                Message message6 =new Message();
-                                message6.what =23;
-                                message6.obj= content.substring(8);
-                                handler.sendMessage(message6);
+                if(macMatch){
+                    for(String content:order.split("\\n")){
+                        System.out.println("order1"+content);
+                        switch (content) {
+                            case "getErrorLog":
+                                Message message7 =new Message();
+                                message7.what =24;
+                                message7.obj= content;
+                                handler.sendMessage(message7);
                                 break;
-                            }else if(content.startsWith("callFun")){
+                            case "start_video":
+                                Message message1 = new Message();
+                                message1.what = 0;
+                                message1.obj = "start_video";
+                                handler.sendMessage(message1);
+                                break;
+                            case "pause_video":
+                                Message message2 = new Message();
+                                message2.what = 0;
+                                message2.obj = "pause_video";
+                                handler.sendMessage(message2);
+                                break;
+                            case "close_light":
+                                close_light();
+                                light_machine= "disable";
+                                pubResult("关闭光机成功");
+                                break;
+                            case "open_light":
+                                open_light();
+                                light_machine= "enable";
+                                pubResult("打开光机成功");
+                                break;
+                            case "get_file_list":
+                                pubResult(getFileNameList().toString()+"["+getFreeSize()+"]");
+                                break;
+                            case "get_video_list":
+                                //视频播放列表
+                                if (video_toPlay_list == null) {
+                                    pubResult("video_toPlay_list is null");
+                                } else {
+                                    pubResult(video_toPlay_list.toString());
+                                }
+                                break;
+                            case "get_picture_list":
+                                if(picture_toPlay_list==null){
+                                    pubResult("picture_toPlay_list is null");
+                                }else {
+                                    pubResult(picture_toPlay_list.toString());
+                                }
+                                break;
+                            case "reboot":
+                                reboot();
+                                break;
+                            default:
+                                if (content.startsWith("update_video_list")) {
+                                    Message message3 = new Message();
+                                    message3.what = 10;
+                                    message3.obj =  content.split(":")[content.split(":").length-1];
+                                    handler.sendMessage(message3);
+                                }
+                                else if(content.startsWith("update_picture_list")) {
+                                    Message message3 = new Message();
+                                    message3.what = 20;
+//                                    message3.obj = content.split(":")[content.split(":").length - 1];
+                                    String tempPictureList = content.substring(20);//{a.jpg:4,b.jpg:5}
+                                    System.out.println("tempPictureList"+tempPictureList);
+                                    message3.obj =content.substring(20);//{a.jpg:4,b.jpg:5}
+                                    handler.sendMessage(message3);
+                                    break;
+                                }
+                                else if(content.startsWith("delete_file_list")){
+                                    String deleteFileList = content.split(":")[content.split(":").length-1];
+                                    for(String fileTodelete : deleteFileList.split(",")){
+                                        deleteSingleFile(getExternalFilesDir(null).toString()+"/"+fileTodelete);
+                                    }
+                                }else if(content.startsWith("change_system_volume")){
+                                    Message message3 = new Message();
+                                    message3.what = 9;
+                                    message3.obj = content.split(":")[content.split(":").length-1];
+                                    handler.sendMessage(message3);
+                                }else if (content.startsWith("set_single_video")){
+                                    Message message5 = new Message();
+                                    message5.what = 11;
+                                    message5.obj = content.split(":")[content.split(":").length-1];
+                                    handler.sendMessage(message5);
+                                }else if(content.startsWith("change_layout")){
+                                    Message message6 = new Message();
+                                    message6.what = 12;
+                                    message6.obj = content.split(":")[content.split(":").length-1];
+                                    handler.sendMessage(message6);
+                                }
+                                else if(content.startsWith("set_cut_line_videoNotInterrupt")){
+                                    Message message6 = new Message();
+                                    message6.what = 17;
+                                    message6.obj = content;
+                                    handler.sendMessage(message6);
+                                }
+                                else if(content.startsWith("set_cut_line_video")){
+                                    Message message6 = new Message();
+                                    message6.what = 16;
+                                    message6.obj = content;
+                                    handler.sendMessage(message6);
+                                }else if(content.startsWith("set_cut_line_pictureNotInterrupt")){
+                                    Message message6 = new Message();
+                                    message6.what = 25;
+                                    message6.obj = content;
+                                    handler.sendMessage(message6);
+                                } else if(content.startsWith("set_cut_line_picture")){
+                                    Message message6 = new Message();
+                                    message6.what = 26;
+                                    message6.obj = content;
+                                    handler.sendMessage(message6);
+                                }
+                                else if(content.startsWith("change_city_")){
+                                    defaultCity=content.split("_")[content.split("_").length-1];
+                                    SharedPreferences.Editor editor = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
+                                    editor.putString("defaultCity",defaultCity);
+                                    editor.apply();
+                                    updateWeather(defaultCity);
+                                }else if(content.startsWith("set_layoutsize")){
+                                    Message message6 = new Message();
+                                    message6.what = 2;
+                                    message6.obj = (content.split("_")[content.split("_").length-1]);
+                                    handler.sendMessage(message6);
+                                }else if(content.startsWith("set_qrcode")){
+                                    //二维码图片
+                                    Message message6 = new Message();
+                                    message6.what = 3;
+                                    message6.obj = content.split(":")[content.split(":").length-1];
+                                    handler.sendMessage(message6);
+                                }else if(content.startsWith("download")){
+                                    Message message6 =new Message();
+                                    message6.what =21;
+                                    message6.obj= content.substring(8);
+                                    handler.sendMessage(message6);
+                                }else if(content.startsWith("connectWifi")){
+                                    Message message6 =new Message();
+                                    message6.what =22;
+                                    message6.obj= content.substring(11);
+                                    handler.sendMessage(message6);
+                                }else if(content.startsWith("set_word")){
+
+                                    Message message6 =new Message();
+                                    message6.what =23;
+                                    message6.obj= content.substring(8);
+                                    handler.sendMessage(message6);
+                                    break;
+                                }else if(content.startsWith("callFun")){
 //                                testFunction
-                                Message message6 =new Message();
-                                message6.what =24;
-                                message6.obj= content.substring(7);
-                                handler.sendMessage(message6);
+                                    Message message6 =new Message();
+                                    message6.what =24;
+                                    message6.obj= content.substring(7);
+                                    handler.sendMessage(message6);
+                                    break;
+                                }
+                                pubResult(content+":success");
                                 break;
-                            }
-                            pubResult(content+":success");
-                            break;
-//                    case topicData:
-//                        byte[] file_byte = mqttMessage.getPayload();
-//                        String fileName = transportFileName;
-//                        try{
-//                            OutputStream os = new FileOutputStream(getExternalFilesDir(null).toString()+ "/"+fileName);
-//                            os.write(file_byte, 0, file_byte.length-10);
-//                            os.flush();
-//                            Log.w("传输文件","传输完成");
-//                            //pair.send(transport_file_name+"传输完成");
-//                            os.close();
-//                        }catch (IOException e){
-//                            e.printStackTrace();
-//                        }
-//                        break;
+                        }
                     }
                 }
 
@@ -1335,7 +1436,7 @@ public class MainActivity extends Activity {
         setUpdateWeatherTimer();
 //        Toast.makeText(MainActivity.this,get_ip(MainActivity.this).split("\\.")[3],Toast.LENGTH_LONG);
         updateWeather(defaultCity);
-        testFunction();
+//        testFunction();
     }
 
     @Override
@@ -1434,6 +1535,7 @@ public class MainActivity extends Activity {
 //            saveErrorLog("wifi连接有问题");
 //            System.out.println(getTime()+"wifi fail");
 //        }
+        reloadParas();
         String errorLogString=loadString("errorLog.txt");
         if(errorLogString!=null&&errorLogString.length()>1){
             System.out.println("重启加载errorlog="+errorLogString);
@@ -1544,7 +1646,7 @@ public class MainActivity extends Activity {
         {
             wifiStatus= "wifiSuccess";
         }else {
-            saveErrorLog("wifi失效"+getTime()+"\n");
+            saveErrorLog("wifi失效");
             connectWifi(MainActivity.this,defaultWifiSSID,defaultWifiPWD,defaultWifiTYPE);
         }
     }
@@ -1642,7 +1744,8 @@ public class MainActivity extends Activity {
 
     }
     private String getProjectorInfo(){
-        String result ="{\"projector_mac\":\""+mac+"\",\"cpu_usage_rate\":\""+getCPURateDesc_All()+"\",\"memory_usage_rate\":\""+getRamUseRate()+"\",\"disk_usage_rate\":\""+getRomUseRate()+"\",\"inner_ip\":\""+get_ip(MainActivity.this)+"\"," +
+//        String result ="{\"projector_mac\":\""+mac+"\",\"cpu_usage_rate\":\""+getCPURateDesc_All()+"\",\"memory_usage_rate\":\""+getRamUseRate()+"\",\"disk_usage_rate\":\""+getRomUseRate()+"\",\"inner_ip\":\""+get_ip(MainActivity.this)+"\"," +
+        String result ="{\"projector_mac\":\""+mac+"\",\"cpu_usage_rate\":\""+"\",\"memory_usage_rate\":\""+getRamUseRate()+"\",\"disk_usage_rate\":\""+getRomUseRate()+"\",\"inner_ip\":\""+get_ip(MainActivity.this)+"\"," +
                 "\"volume\":\""+getSystemVolume(MainActivity.this)+"\"," +
                 "\"light_machine\":\""+light_machine+"\"," +
                 "\"current_video_ad_id\":\""+current_video_ad_id+"\"," +
@@ -1666,7 +1769,7 @@ public class MainActivity extends Activity {
                 options.setUserName(mqttUsername);
                 options.setPassword(mqttPassword.toCharArray());
                 options.setCleanSession(false);
-                String clientId = "projector/"+get_mac(MainActivity.this);
+                String clientId = "projector-"+get_mac(MainActivity.this)+"13";
                 try {
                     MemoryPersistence persistence = new MemoryPersistence();
                     mqttClient=new MqttClient(host,clientId,persistence);
@@ -1751,12 +1854,13 @@ public class MainActivity extends Activity {
                     mqttClient.subscribe(subscribeTopics);//设置监听的topic
 
                     ArrayList<String> publist=  new ArrayList<>();
-                    publist.add("downloadhttp://www.w3school.com.cn/example/html5/mov_bbb.mp4@@11.mp4");
+
+//                    publist.add("downloadhttp://www.w3school.com.cn/example/html5/mov_bbb.mp4@@11.mp4");
                     publist.add("set_wordw我不是一个好人fds");
-                    publist.add("get_file_list");
-                    publist.add("update_picture_list:{piclist1.jpg:4, piclist2.jpg:2}");
-                    publist.add("update_video_list:a3.mp4,a4.mp4");
-                    publist.add("change_system_volume:50");
+//                    publist.add("get_file_list");
+//                    publist.add("update_picture_list:{piclist1.jpg:4, piclist2.jpg:2}");
+//                    publist.add("update_video_list:a3.mp4,a4.mp4");
+//                    publist.add("change_system_volume:50");
                     for(int i=0;i<publist.size();i++){
                         MqttMessage msg=new MqttMessage();
                         msg.setPayload(publist.get(i).getBytes());//设置消息内容
@@ -1775,64 +1879,31 @@ public class MainActivity extends Activity {
 
     }
     private void testFunction(){
+
         ArrayList<String> list1= new ArrayList<>();
-//        list1.add("a3");
-//        list1.add("a10s.mp4");
-//        list1.add("a4");
-////        list1.add("a1min");
-        list1.add("a5");
-        list1.add("a10s16to9");
-//        list1.add("a1misn.mp4");
-//        list1.add("a1min.mp4");
-
+        list1.add("v1");
+        list1.add("v2");
+        list1.add("v3");
+        list1.add("v4");
+        list1.add("v5");
+        list1.add("v6");
         ArrayList<String> list2= new ArrayList<>();
-//        list2.add("pic1");
-//        list2.add("pic3");
-////        list2.add("piclist1");
-//        list2.add("piclist2");
-////        list2.add("piclist3");
-//        list2.add("qrcode1_1");
-//        list2.add("qrcode2_2");
-        list2.add("test1_5");
-        list2.add("test2");
-        list2.add("test2_5");
-        list2.add("test3");
-        list2.add("test3_5");
+        list2.add("p1");
+        list2.add("p2");
+        list2.add("p3");
+        list2.add("p4");
         ArrayList<Integer> list3= new ArrayList<>();
-        list3.add(5);
-        list3.add(5);
-        list3.add(5);
-        list3.add(5);
-        list3.add(5);
-//        videoview.setVideoURI(Uri.parse("daf"));
-//        test_mqtt();
-//        list2.add(6);
-//        setPictureListAndTime(list1,list2);
-//        videoview.setVideoURI(Uri.parse("android.resource://"+getPackageName()+"/raw/one_min"));
-//        videoview.start();
-//        videoview.setVideoURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+fileName));
-//        videoview.setVideoURI(Uri.parse("android.resource://"+getPackageName()+"/raw/a1min"));
-//        videoview.start();
-//        videoview.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-//            @Override
-//            public void onCompletion(MediaPlayer mediaPlayer) {
-////                mediaPlayer.setLooping(true);
-//                videoview.start();
-////                countVideo();
-//            }
-//        });
-//        imageview.setImageURI(Uri.parse("android.resource://"+getPackageName()+"/raw/pic1"));
-//        setPictureListAndTime(list2,list3);
+        list3.add(8);
+        list3.add(8);
+        list3.add(8);
+        list3.add(8);
+        setPictureListAndTime(list2,list3);
         setVideoList2(list1);
-//        System.out.println(getExternalFilesDir(null).toString());
-//        System.out.println(Environment.getExternalStorageDirectory().toString());
-//        System.out.println("sd卡="+getSdCardPath());
-
-//        System.out.println(getProjectorInfo());
-//        Drawable drawable2 = getResources().getDrawable();
-//        drawable2.setBounds(0, 0, (int) (drawable2.getIntrinsicWidth()*1.4), (int)(drawable2.getIntrinsicHeight()*1.4));
-//        textView2.setCompoundDrawables(null, null, drawable2, null);
-
+        SharedPreferences.Editor editor2 = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
+        editor2.putString("video_toPlay_list",list1.toString().substring(1,video_toPlay_list.toString().length()-1));
+        editor2.putString("picture_toPlay_list",list2.toString().substring(1,list2.toString().length()-1));
+        editor2.putString("picture_toPlay_list_time",list3.toString().substring(1,list3.toString().length()-1));
+        editor2.apply();
     }
     public static boolean isSdCardExist() {
         return Environment.getExternalStorageState().equals(
@@ -1880,9 +1951,17 @@ public class MainActivity extends Activity {
         FileOutputStream out=null;
         BufferedWriter writer=null;
         try {
-            out=openFileOutput("errorLog.txt", Context.MODE_APPEND);
-            writer=new BufferedWriter(new OutputStreamWriter(out));
-            writer.write(inputText+"\n");
+            FileInputStream in = openFileInput("errorLog.txt");
+            if(in.available()>1024*50){
+                //大于50k ，清空重写
+                out=openFileOutput("errorLog.txt", Context.MODE_PRIVATE);
+                writer=new BufferedWriter(new OutputStreamWriter(out));
+                writer.write("\""+getTime()+"\":"+"\""+inputText+"\",");
+            }else {
+                out=openFileOutput("errorLog.txt", Context.MODE_APPEND);
+                writer=new BufferedWriter(new OutputStreamWriter(out));
+                writer.write("\""+getTime()+"\":"+"\""+inputText+"\",");
+            }
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -1918,9 +1997,6 @@ public class MainActivity extends Activity {
             }
         }
     }
-
-
-
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         boolean onKeyDown = super.onKeyDown(keyCode, event);
@@ -1938,8 +2014,10 @@ public class MainActivity extends Activity {
                 videoview.start();
                 posForPicture--;
 //                pictureHandler.removeCallbacks(runnable);
+
                 if(posForPicture>=0){
-                    imageview.setImageURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+picture_toPlay_list.get(posForPicture).trim()));
+                    checkPictureFile();
+//                    imageview.setImageURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+picture_toPlay_list.get(posForPicture).trim()));
                     pictureHandler.postDelayed(runnable,picture_toPlay_list_time.get(posForPicture)*1000-(time2-time1));
                 }
                 break;
