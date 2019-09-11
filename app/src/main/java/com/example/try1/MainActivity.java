@@ -1116,7 +1116,7 @@ public class MainActivity extends Activity {
 //        layoutParams1.gravity= Gravity.CENTER_HORIZONTAL;
 //        layoutParams1.gravity= Gravity.CENTER_VERTICAL;
         layoutParams1.width =11*layoutSize;
-        layoutParams1.height=4*layoutSize;
+        layoutParams1.height=5*layoutSize;
 //        layoutParams1.leftMargin = left;
 //        layoutParams1.topMargin = -1*top;
         layout.setLayoutParams(layoutParams1);
@@ -1222,6 +1222,7 @@ public class MainActivity extends Activity {
                 String content0 = new String(mqttMessage.getPayload(),"GB2312");//GB2312
                 String mac="" ;
                 String order ="";
+                System.out.println("topic:"+s+"\n"+content0);
                 boolean macMatch =false;
                 if(s.equals(topicSub)){
                     //统一命令
@@ -1436,6 +1437,7 @@ public class MainActivity extends Activity {
         setUpdateWeatherTimer();
 //        Toast.makeText(MainActivity.this,get_ip(MainActivity.this).split("\\.")[3],Toast.LENGTH_LONG);
         updateWeather(defaultCity);
+//        test_mqtt();
 //        testFunction();
     }
 
@@ -1568,7 +1570,7 @@ public class MainActivity extends Activity {
             System.out.println("adPlayStatistic文件不存在");
         }
         SharedPreferences pref = getSharedPreferences("data_try1",MODE_PRIVATE);
-        setLayoutSize(layout1,pref.getInt("layoutSize",120),pref.getInt("left_margin",0),pref.getInt("top_margin",0));
+//        setLayoutSize(layout1,pref.getInt("layoutSize",120),pref.getInt("left_margin",0),pref.getInt("top_margin",0));
 
         mac = pref.getString("mac",get_mac(MainActivity.this));
         defaultCity = pref.getString("defaultCity","西安");
@@ -1744,8 +1746,8 @@ public class MainActivity extends Activity {
 
     }
     private String getProjectorInfo(){
-//        String result ="{\"projector_mac\":\""+mac+"\",\"cpu_usage_rate\":\""+getCPURateDesc_All()+"\",\"memory_usage_rate\":\""+getRamUseRate()+"\",\"disk_usage_rate\":\""+getRomUseRate()+"\",\"inner_ip\":\""+get_ip(MainActivity.this)+"\"," +
-        String result ="{\"projector_mac\":\""+mac+"\",\"cpu_usage_rate\":\""+"\",\"memory_usage_rate\":\""+getRamUseRate()+"\",\"disk_usage_rate\":\""+getRomUseRate()+"\",\"inner_ip\":\""+get_ip(MainActivity.this)+"\"," +
+        String result ="{\"projector_mac\":\""+mac+"\",\"cpu_usage_rate\":\""+getCPURateDesc_All()+"\",\"memory_usage_rate\":\""+getRamUseRate()+"\",\"disk_usage_rate\":\""+getRomUseRate()+"\",\"inner_ip\":\""+get_ip(MainActivity.this)+"\"," +
+//        String result ="{\"projector_mac\":\""+mac+"\",\"cpu_usage_rate\":\""+"\",\"memory_usage_rate\":\""+getRamUseRate()+"\",\"disk_usage_rate\":\""+getRomUseRate()+"\",\"inner_ip\":\""+get_ip(MainActivity.this)+"\"," +
                 "\"volume\":\""+getSystemVolume(MainActivity.this)+"\"," +
                 "\"light_machine\":\""+light_machine+"\"," +
                 "\"current_video_ad_id\":\""+current_video_ad_id+"\"," +
@@ -1856,7 +1858,7 @@ public class MainActivity extends Activity {
                     ArrayList<String> publist=  new ArrayList<>();
 
 //                    publist.add("downloadhttp://www.w3school.com.cn/example/html5/mov_bbb.mp4@@11.mp4");
-                    publist.add("set_wordw我不是一个好人fds");
+                    publist.add("hello");
 //                    publist.add("get_file_list");
 //                    publist.add("update_picture_list:{piclist1.jpg:4, piclist2.jpg:2}");
 //                    publist.add("update_video_list:a3.mp4,a4.mp4");
