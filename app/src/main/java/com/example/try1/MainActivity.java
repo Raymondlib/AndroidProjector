@@ -12,6 +12,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -135,9 +136,16 @@ public class MainActivity extends Activity {
     String topicUpdateAd ="ddzl/broker/projector/clientid/update_advertisement";
     String topicStatus = "ddzl/projector/broker/clientid/device_status";
     String topicPush ="ddzl/broker/projector/clientid/advertise/push";
-    private String defaultWifiSSID ="ddzl";
-    private String defaultWifiPWD ="ddzl2019";
+    String topicTest = "ddzl/broker/projector/test";
+
+//    private String defaultWifiSSID ="ddzl";
+//    private String defaultWifiPWD ="ddzl2019";
+//    private String defaultWifiTYPE ="WPA2";
+
+    private String defaultWifiSSID ="dasen_wifi_test";
+    private String defaultWifiPWD ="wifi@mima";
     private String defaultWifiTYPE ="WPA2";
+
     public String topicPubMac;
     public String topicSubMac;
     public String mac;
@@ -242,6 +250,8 @@ public class MainActivity extends Activity {
                     SharedPreferences.Editor editor2 = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
                     editor2.putString("video_toPlay_list",video_temp_list.toString().substring(1,video_toPlay_list.toString().length()-1));
                     editor2.apply();
+
+                    System.out.println("视频播放列表为"+video_toPlay_list);
                     break;
                 case 11:
                     //立即重复播放一个视频
@@ -283,18 +293,9 @@ public class MainActivity extends Activity {
                     break;
                 case 14:
                     //设置图片播放列表
-                    try {
-                        ArrayList<String> picture_temp_list= new ArrayList<>(Arrays.asList(msg.obj.toString().split(",")));
-                        setPictureList(picture_temp_list);
-                        SharedPreferences.Editor editor = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
-                        editor.putString("picture_toPlay_list",picture_temp_list.toString().substring(1,picture_temp_list.toString().length()-1));
-                        editor.apply();
-                    }catch (NullPointerException e){
-                        e.printStackTrace();
-                    }
                     break;
                 case 15:
-                    nextPicture();
+
                     break;
                 case 16:
                     int tempPart1=msg.obj.toString().split(":").length;
@@ -595,11 +596,13 @@ public class MainActivity extends Activity {
         video_toPlay_list = new ArrayList<>(filenames);
         File file = new File(getExternalFilesDir(null).toString()+"/"+video_toPlay_list.get(posForVideo).trim());
         if (!file.exists()) {
+            System.out.println("视频不存在----------"+video_toPlay_list.get(posForVideo));
             videoview.setVideoURI(Uri.parse("android.resource://"+getPackageName()+"/raw/"+video_toPlay_list.get(posForVideo).trim().split("\\.")[0]));
 //            imageview.setImageURI(Uri.parse("android.resource://"+getPackageName()+"/raw/"+picture_toPlay_list.get(posForPicture).trim().split("\\.")[0]));
             System.out.println("播放视频----------"+video_toPlay_list.get(posForVideo));
         }else {
             videoview.setVideoURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+video_toPlay_list.get(posForVideo).trim()));
+            System.out.println("开始播放视频:"+video_toPlay_list.get(posForVideo).trim());
         }
         videoview.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
@@ -798,7 +801,7 @@ public class MainActivity extends Activity {
             return;
         }else {
             System.out.println("文件列表");
-            setPictureTimer();
+
         }
     }
     Handler pictureHandler = new Handler();
@@ -859,8 +862,8 @@ public class MainActivity extends Activity {
         topicStatus = pref.getString("topicStatus","ddzl/projector/broker/"+mac+"/device_status");
         topicPush = pref.getString("topicPush","ddzl/broker/projector/"+mac+"/advertise/push");
         defaultCity = pref.getString("defaultCity","西安");
-        defaultWifiSSID = pref.getString("defaultWifiSSID","ddzl");
-        defaultWifiPWD = pref.getString("defaultWifiPWD","ddzl2019");
+//        defaultWifiSSID = pref.getString("defaultWifiSSID","ddzl");
+//        defaultWifiPWD = pref.getString("defaultWifiPWD","ddzl2019");
         defaultWifiTYPE = pref.getString("defaultWifiTYPE","WPA2");
         wordAd = pref.getString("wordAd","垃圾分类，从我做起");
         textView.setText(wordAd);
@@ -935,89 +938,19 @@ public class MainActivity extends Activity {
         picCutInName = filename;
         picCutInTimes = Integer.parseInt(times);
     }
-    //播放下一个图片
-    private void nextPicture() {
-        if (posForPicture == picture_toPlay_list.size()) {
-            posForPicture = 0;
-        }
-            SharedPreferences.Editor editor = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
-            editor.putInt("posForPicture",posForPicture);
-            editor.apply();
-//        imageview.setImageURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+picture_toPlay_list.get(posForPicture).trim()));
-        posForPicture++;
-    }
-    private void setPictureTimer(){
-        System.out.println("时间间隔"+picture_time);
-        if(timerForPicture!=null){
-            timerForPicture.cancel();
-        }
-        timerForPicture=new Timer();
-//        timerForPicture.purge();
-        posForPicture=0;
-        if(timerTask!=null){timerTask.cancel();}
-        timerTask = new TimerTask() {
-            @Override
-            public void run() {
-                Message msg = new Message();
-                msg.what =15;
-                handler.sendMessage(msg);
-            }
-        };
-        System.out.println("图片时间间隔="+picture_time);
-        timerForPicture.schedule(timerTask, 0,picture_time*1000);
-    }
 
-    private void setPictureTimer2(int pos,int picture_time){
-        System.out.println("时间间隔"+picture_time);
-        if(timerForPicture!=null){
-            timerForPicture.cancel();
-        }
-        timerForPicture=new Timer();
-        posForPicture=pos;
-        if(timerTask!=null){timerTask.cancel();}
-        timerTask = new TimerTask() {
-            @Override
-            public void run() {
-                Message msg = new Message();
-                msg.what =15;
-                handler.sendMessage(msg);
-            }
-        };
-        timerForPicture.schedule(timerTask, 0,picture_time*1000);
-    }
-    //发送udp广播,通知控制端本机 ip mac 设备名
-    private void send_udp_broadcast(Context context){
-        String mac = get_mac(context);
-        String local_ip = get_ip(context);
-//        String broadcast_address = local_ip.split("\\.")[0]+"."+local_ip.split("\\.")[1]+"."+local_ip.split("\\.")[2]+".255"; //直接广播
-        String broadcast_address = "255.255.255.255"; //本地广播
-        String msg = local_ip+"|"+mac+"|projector";
-        DatagramSocket datagramSocket = null;
-        try {
-            datagramSocket = new DatagramSocket();
-            datagramSocket.setBroadcast(true);
-            InetAddress address = InetAddress.getByName(broadcast_address);
-            DatagramPacket datagramPacket = new DatagramPacket(msg.getBytes(), msg.length(),     address, 5500);
-            datagramSocket.send(datagramPacket);
-        } catch (Exception e) {
-//            LogUtil.d(TAG,e.toString());
-        } finally {
-            if (datagramSocket != null) {
-                datagramSocket.close();
-            }
-        }
-    }
     public String get_mac(Context context) {
         String mac_s = "";
         try {
             byte[] mac;
+            System.out.println("ip地址");
+            System.out.println(get_ip(MainActivity.this));
             NetworkInterface ne = NetworkInterface.getByInetAddress(InetAddress.getByName(get_ip(MainActivity.this)));
             mac = ne.getHardwareAddress();
             mac_s = byte2hex(mac);
         } catch (Exception e) {
             e.printStackTrace();
         }
-
         return mac_s;
     }
     public String byte2hex(byte[] b) {
@@ -1171,14 +1104,13 @@ public class MainActivity extends Activity {
 //        LayoutInflater inflater = LayoutInflater.from(this);
 //        layout1 = inflater.inflate(R.layout.activity_main_projector, null);
         layout1 = findViewById(R.id.constraintlayout1);
-        System.out.println(getSharedPreferences("data_try1",MODE_PRIVATE).getInt("layoutSize",80));
         mac = get_mac(MainActivity.this);
         SharedPreferences.Editor editor = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
         editor.putString("mac",mac);
         editor.apply();
 //        Toast.makeText(MainActivity.this,loadString("adPlayStatistic.txt"),Toast.LENGTH_LONG).show();
         topicSubMac = topicSub+"/"+mac;
-        topicSubList = new String[]{topicSubMac,topicSub,topicVolume,topicUpdateAd,topicPush};
+        topicSubList = new String[]{topicSubMac,topicSub,topicVolume,topicUpdateAd,topicPush,topicTest};
         for(int i =0;i<topicSubList.length;i++){
             topicSubList[i]=topicSubList[i].replaceFirst("clientid",mac);
             System.out.println(i);
@@ -1205,9 +1137,6 @@ public class MainActivity extends Activity {
         imageview = (RoundedImageView) findViewById(R.id.imageView);
         weatherMap = initWeatherMap();
         adPlayStatistic = new HashMap<>();
-        newMqttClient();
-        restart();
-
         mqttCallback = new MqttCallback() {
             @Override
             public void connectionLost(Throwable throwable) {
@@ -1219,13 +1148,14 @@ public class MainActivity extends Activity {
                 Message msg = new Message();
                 msg.arg1 = MQTT_STATE_RECEIVE;
 //                { "mac":"XX:XX","order":"",}
+                Log.e("接收到消息",new String(mqttMessage.getPayload()));
                 String content0 = new String(mqttMessage.getPayload(),"GB2312");//GB2312
                 String mac="" ;
                 String order ="";
                 System.out.println("topic:"+s+"\n"+content0);
                 boolean macMatch =false;
                 final  String finalTopicSub= topicSub;
-                if(s.equals(topicSub)){ //统一命令
+                if(s.equals(topicSub)||s.equals(topicTest)){ //统一命令
                     try {
                         JSONObject result = new JSONObject(content0);
                         order = result.getString("order");
@@ -1234,25 +1164,7 @@ public class MainActivity extends Activity {
                         e.printStackTrace();
                     }
                     macMatch =true;
-                }else if(s.equals(topicUpdateAd)){
-                    String content = content0;
-                    if (content.startsWith("update_video_list")) {
-                        Message message3 = new Message();
-                        message3.what = 10;
-                        message3.obj =  content.split(":")[content.split(":").length-1];
-                        handler.sendMessage(message3);
-                    }
-                    else if(content.startsWith("update_picture_list")) {
-                        Message message3 = new Message();
-                        message3.what = 20;
-//                                    message3.obj = content.split(":")[content.split(":").length - 1];
-                        String tempPictureList = content.substring(20);//{a.jpg:4,b.jpg:5}
-                        System.out.println("tempPictureList"+tempPictureList);
-                        message3.obj =content.substring(20);//{a.jpg:4,b.jpg:5}
-                        handler.sendMessage(message3);;
-                    }
-                }
-                else {
+                } else {
                     try {
                         JSONObject result = new JSONObject(content0);
                         mac = result.getString("mac");
@@ -1281,7 +1193,6 @@ public class MainActivity extends Activity {
                     System.out.println(order);
                     System.out.println(macMatch);
                 }
-
                 if(macMatch){
                     for(String content:order.split("\\n")){
                         System.out.println("order1"+content);
@@ -1315,7 +1226,7 @@ public class MainActivity extends Activity {
                                 pubResult("打开光机成功");
                                 break;
                             case "get_file_list":
-                                pubResult(getFileNameList().toString()+"["+getFreeSize()+"]");
+                                pubResult(getFileNameList().toString()+"["+getFreeSize()+"] "+get_mac(MainActivity.this)+" ip "+get_ip(MainActivity.this)+getTime());
                                 break;
                             case "get_video_list":
                                 //视频播放列表
@@ -1424,14 +1335,12 @@ public class MainActivity extends Activity {
                                     message6.obj= content.substring(11);
                                     handler.sendMessage(message6);
                                 }else if(content.startsWith("set_word")){
-
                                     Message message6 =new Message();
                                     message6.what =23;
                                     message6.obj= content.substring(8);
                                     handler.sendMessage(message6);
                                     break;
                                 }else if(content.startsWith("callFun")){
-//                                testFunction
                                     Message message6 =new Message();
                                     message6.what =24;
                                     message6.obj= content.substring(7);
@@ -1443,21 +1352,24 @@ public class MainActivity extends Activity {
                         }
                     }
                 }
-
             }
             @Override
             public void deliveryComplete(IMqttDeliveryToken iMqttDeliveryToken) {
 
             }
         };
-
-//        System.out.println(get_mac(MainActivity.this));
-//        System.out.println(android.os.Build.MANUFACTURER);
         setUpdateWeatherTimer();
 //        Toast.makeText(MainActivity.this,get_ip(MainActivity.this).split("\\.")[3],Toast.LENGTH_LONG);
         updateWeather(defaultCity);
 //        test_mqtt();
+        newMqttClient();
+        testFunction();
+        restart();
+
 //        testFunction();
+        System.out.println("mac地址2");
+        System.out.println(get_mac(MainActivity.this));
+        checkWifi();
     }
 
     @Override
@@ -1572,7 +1484,7 @@ public class MainActivity extends Activity {
             public void run() {
                 checkWifi();
             }
-        },1000*60,1000*60);
+        },0,1000*30);
 
         String mapString=loadString("adPlayStatistic.txt");
         if(mapString!=null&&mapString.length()>1){
@@ -1595,6 +1507,8 @@ public class MainActivity extends Activity {
         defaultCity = pref.getString("defaultCity","西安");
 //        updateWeather(defaultCity);
         video_toPlay_list = new ArrayList<>(Arrays.asList(pref.getString("video_toPlay_list","not_set").split(",")));
+
+        System.out.println(video_toPlay_list);
         picture_toPlay_list = new ArrayList<>(Arrays.asList(pref.getString("picture_toPlay_list","not_set").split(",")));
         ArrayList <String>temp_picture_toPlay_list_time = new ArrayList<>(Arrays.asList(pref.getString("picture_toPlay_list_time","not_set").split(",")));
         picture_toPlay_list_time = new ArrayList<>();
@@ -1666,13 +1580,13 @@ public class MainActivity extends Activity {
         if(wifiNetworkInfo.isConnected())
         {
             wifiStatus= "wifiSuccess";
+            System.out.println(wifiStatus);
         }else {
             saveErrorLog("wifi失效");
             connectWifi(MainActivity.this,defaultWifiSSID,defaultWifiPWD,defaultWifiTYPE);
+            System.out.println("开始连接wifi");
         }
     }
-
-
     public static long getFreeMemory(Context context) {
         //运存
         ActivityManager manager = (ActivityManager) context
@@ -1781,6 +1695,11 @@ public class MainActivity extends Activity {
         result+="}]}";
         return result;
     }
+    private String addColonToMac(String mac){
+        String re = "";
+
+        return re;
+    }
     private void newMqttClient(){
         new Thread(new Runnable() {
             @Override
@@ -1789,14 +1708,20 @@ public class MainActivity extends Activity {
                 MqttConnectOptions options =new MqttConnectOptions();
                 options.setUserName(mqttUsername);
                 options.setPassword(mqttPassword.toCharArray());
-                options.setCleanSession(false);
-                String clientId = "projector-"+get_mac(MainActivity.this)+"13";
+                options.setCleanSession(true);
+                String clientId = get_mac(MainActivity.this)+"pro123";
                 try {
                     MemoryPersistence persistence = new MemoryPersistence();
                     mqttClient=new MqttClient(host,clientId,persistence);
                     mqttClient.setCallback(mqttCallback);//设置回调函数
                     mqttClient.connect(options);//连接broker
+                    mqttClient.subscribe(topicTest);
                     mqttClient.subscribe(topicSubList);
+                    System.out.println("订阅的topic为");
+                    for(int i=0;i<topicSubList.length;i++){
+                        System.out.println(topicSubList[i]);
+                    }
+
 //                    MqttMessage msg=new MqttMessage();
 //                    String msgStr="Hello World";
 //                    msg.setPayload(msgStr.getBytes());//设置消息内容
@@ -1865,8 +1790,8 @@ public class MainActivity extends Activity {
                 options.setUserName("xupeng");
                 options.setPassword("000".toCharArray());
                 options.setCleanSession(true);
-                String clientId = "s123";
-                String subscribeTopics="topic1";
+                String clientId = "s1234";
+                String subscribeTopics=topicTest;
                 try {
                     MemoryPersistence persistence = new MemoryPersistence();
                     MqttClient mqttClient=new MqttClient(host,clientId,persistence);
@@ -1875,32 +1800,48 @@ public class MainActivity extends Activity {
                     mqttClient.subscribe(subscribeTopics);//设置监听的topic
 
                     ArrayList<String> publist=  new ArrayList<>();
+                    MqttMessage msg=new MqttMessage();
+                        msg.setPayload(("testM").getBytes());//设置消息内容
+                        msg.setQos(2);//设置消息发送质量，可为0,1,2.
+                        msg.setRetained(false);//服务器是否保存最后一条消息，若保存，client再次上线时，将再次受到上次发送的最后一条消息。
+                        Log.e("topic",topicTest);
+                        mqttClient.publish(topicTest,msg);//设置消息的topic，并发送。
+
 
 //                    publist.add("downloadhttp://www.w3school.com.cn/example/html5/mov_bbb.mp4@@11.mp4");
-                    publist.add("hello");
+
 //                    publist.add("get_file_list");
 //                    publist.add("update_picture_list:{piclist1.jpg:4, piclist2.jpg:2}");
 //                    publist.add("update_video_list:a3.mp4,a4.mp4");
 //                    publist.add("change_system_volume:50");
-                    for(int i=0;i<publist.size();i++){
-                        MqttMessage msg=new MqttMessage();
-                        msg.setPayload(publist.get(i).getBytes());//设置消息内容
-                        msg.setQos(2);//设置消息发送质量，可为0,1,2.
-                        msg.setRetained(false);//服务器是否保存最后一条消息，若保存，client再次上线时，将再次受到上次发送的最后一条消息。
-                        mqttClient.publish("ddzl/broker/projector",msg);//设置消息的topic，并发送。
-//                        mqttClient.publish(topicPubMac,"set_wordw我不是一个好人fds");
-                    }
+//                    for(int i =0;i<topicSubList.length;i++){
+//                        MqttMessage msg=new MqttMessage();
+//                        msg.setPayload(("testM"+i).getBytes());//设置消息内容
+//                        msg.setQos(2);//设置消息发送质量，可为0,1,2.
+//                        msg.setRetained(false);//服务器是否保存最后一条消息，若保存，client再次上线时，将再次受到上次发送的最后一条消息。
+//                        Log.e("topic"+i,topicSubList[i]);
+//                        mqttClient.publish(topicSubList[i],msg);//设置消息的topic，并发送。
+//                    }
+//                    for(int i=0;i<publist.size();i++){
+//                        MqttMessage msg=new MqttMessage();
+//                        msg.setPayload(publist.get(i).getBytes());//设置消息内容
+//                        msg.setQos(2);//设置消息发送质量，可为0,1,2.
+//                        msg.setRetained(false);//服务器是否保存最后一条消息，若保存，client再次上线时，将再次受到上次发送的最后一条消息。
+//                        mqttClient.publish("ddzl/broker/projector",msg);//设置消息的topic，并发送。
+////                        mqttClient.publish(topicPubMac,"set_wordw我不是一个好人fds");
+//                    }
                 } catch (MqttException e) {
                     e.printStackTrace();
                 }
 
             }
-        }).start();
+        });
 
 
     }
     private void testFunction(){
-
+        System.out.println("mac地址");
+        System.out.println(get_mac(MainActivity.this));
         ArrayList<String> list1= new ArrayList<>();
         list1.add("v1");
         list1.add("v2");
@@ -1912,9 +1853,7 @@ public class MainActivity extends Activity {
         list2.add("p1");
         list2.add("p2");
         list2.add("p3");
-        list2.add("p4");
         ArrayList<Integer> list3= new ArrayList<>();
-        list3.add(8);
         list3.add(8);
         list3.add(8);
         list3.add(8);
@@ -1925,6 +1864,29 @@ public class MainActivity extends Activity {
         editor2.putString("picture_toPlay_list",list2.toString().substring(1,list2.toString().length()-1));
         editor2.putString("picture_toPlay_list_time",list3.toString().substring(1,list3.toString().length()-1));
         editor2.apply();
+        Timer timerForWifiTest =new Timer();
+        TimerTask timerTask = new TimerTask() {
+            @Override
+            public void run() {
+//                test_mqtt();
+                if(testWifi()){
+                    Log.e("wifi测试","正常连接");
+                    System.out.println("ip地址为:"+get_ip(MainActivity.this));
+                }else {
+                    Log.e("wifi测试","不能正常连接");
+                    saveErrorLog("wifi测试，不能正常连接");
+                }
+            }
+        };
+        timerForWifiTest.schedule(timerTask, 0,10*1000);
+        printWifi();
+    }
+    private void printWifi(){
+        WifiManager wifiManager = (WifiManager) MainActivity.this.getSystemService(Context.WIFI_SERVICE);
+//        WifiManager wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);
+        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+        Log.d("wifiInfo", wifiInfo.toString());
+        Log.d("SSID",wifiInfo.getSSID());
     }
     public static boolean isSdCardExist() {
         return Environment.getExternalStorageState().equals(
@@ -2050,6 +2012,20 @@ public class MainActivity extends Activity {
         if(errorLogString!=null && errorLogString.length()>1){
             return errorLogString;
         }else return "errorLog not exist";
+    }
+    private boolean testWifi(){
+        Runtime runtime = Runtime.getRuntime();
+        try {
+            Process p = runtime.exec("ping -c 3 www.baidu.com");
+            int ret = p.waitFor();
+            Log.i("Avalible", "Process:"+ret);
+            if(ret==0){
+                return true;
+            }else return false;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 }
 
