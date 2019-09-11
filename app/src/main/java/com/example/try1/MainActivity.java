@@ -160,7 +160,6 @@ public class MainActivity extends Activity {
     private HashMap<String,Integer> adPlayStatistic;
     private int picCutInTimes= 0;
     private String picCutInName;
-    String url30 ;
     long time1;
     long time2;
     private Handler mqttHandler = new Handler(new Handler.Callback() {
@@ -250,7 +249,6 @@ public class MainActivity extends Activity {
                     SharedPreferences.Editor editor2 = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
                     editor2.putString("video_toPlay_list",video_temp_list.toString().substring(1,video_toPlay_list.toString().length()-1));
                     editor2.apply();
-
                     System.out.println("视频播放列表为"+video_toPlay_list);
                     break;
                 case 11:
@@ -295,7 +293,6 @@ public class MainActivity extends Activity {
                     //设置图片播放列表
                     break;
                 case 15:
-
                     break;
                 case 16:
                     int tempPart1=msg.obj.toString().split(":").length;
@@ -359,8 +356,6 @@ public class MainActivity extends Activity {
                 case 21:
                     final String url = msg.obj.toString().split("@@")[0];
                     final String fileName = msg.toString().split("@@")[msg.toString().split("@@").length-1].split(" ")[0];
-//                    pubResult( msg.obj.toString());
-//                    pubResult("filenme="+fileName);
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
@@ -508,7 +503,6 @@ public class MainActivity extends Activity {
             AudioManager audioManager = (AudioManager) context.getSystemService(Service.AUDIO_SERVICE);
             int currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
             int mMaxVolume  = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
-//            int re = currentVolume/
             return currentVolume*100/mMaxVolume;
         } catch (Exception e) {
             e.printStackTrace();
@@ -563,13 +557,7 @@ public class MainActivity extends Activity {
         saveAdMap();
     }
     private void countPictureAndCurrent(){
-//        System.out.println("posForPicture:"+posForPicture);
-//        System.out.println("图片名"+picture_toPlay_list.get(posForPicture));
-//        System.out.println("时长"+picture_toPlay_list_time.get(posForPicture));
-//        System.out.println(picture_toPlay_list.toString());
-//        System.out.println(picture_toPlay_list_time.toString());
         current_picture_ad_id = picture_toPlay_list.get(posForPicture).trim();
-//        pubResult("posForPicture:"+posForPicture+"\n"+"图片名"+picture_toPlay_list.get(posForPicture)+"\n"+"时长"+picture_toPlay_list_time.get(posForPicture)+"\n"+picture_toPlay_list.toString());
         countPicture();
     }
     //更改播放文件
@@ -596,9 +584,7 @@ public class MainActivity extends Activity {
         video_toPlay_list = new ArrayList<>(filenames);
         File file = new File(getExternalFilesDir(null).toString()+"/"+video_toPlay_list.get(posForVideo).trim());
         if (!file.exists()) {
-            System.out.println("视频不存在----------"+video_toPlay_list.get(posForVideo));
             videoview.setVideoURI(Uri.parse("android.resource://"+getPackageName()+"/raw/"+video_toPlay_list.get(posForVideo).trim().split("\\.")[0]));
-//            imageview.setImageURI(Uri.parse("android.resource://"+getPackageName()+"/raw/"+picture_toPlay_list.get(posForPicture).trim().split("\\.")[0]));
             System.out.println("播放视频----------"+video_toPlay_list.get(posForVideo));
         }else {
             videoview.setVideoURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+video_toPlay_list.get(posForVideo).trim()));
@@ -647,11 +633,7 @@ public class MainActivity extends Activity {
         SharedPreferences.Editor editor = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
         editor.putInt("posForVideo",posForVideo);
         editor.apply();
-        System.out.println("视频");
-        System.out.println(video_toPlay_list.get(posForVideo));
         videoview.setVideoURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+video_toPlay_list.get(posForVideo).trim()));
-//        videoview.setMediaController(mc);
-//        videoview.requestFocus();
         videoview.start();
         countVideoAndCurrent();
     }
@@ -660,7 +642,6 @@ public class MainActivity extends Activity {
         posForVideo++;
         if (posForVideo>=video_toPlay_list.size()) {
             posForVideo=0;
-
         }
         SharedPreferences.Editor editor = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
         editor.putInt("posForVideo",posForVideo);
@@ -679,8 +660,7 @@ public class MainActivity extends Activity {
     public void setVideo(String fileName){
         videoview.stopPlayback();
         checkVideoFileWithName(fileName);
-//        videoview.setVideoURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+fileName));
-        current_video_ad_id=fileName;
+       current_video_ad_id=fileName;
         countVideo();
         videoview.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
@@ -712,7 +692,6 @@ public class MainActivity extends Activity {
 //                videoview.setVideoURI(Uri.parse("android.resource://"+getPackageName()+"/raw/"+fileName.split("\\.")[0]));
 //            }else {pubResult(video_toPlay_list.get(posForVideo)+":not_exists");}
         }else {
-            System.out.println("开始播放文件"+fileName);
             videoview.setVideoURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+fileName));
         }
         videoview.start();
@@ -746,8 +725,6 @@ public class MainActivity extends Activity {
                     countVideo();
                 }else {
                     checkVideoFile();
-//                    videoview.setVideoURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+video_toPlay_list.get(posForVideo).trim()));
-//                    videoview.start();
                     countVideoAndCurrent();
                 }
             }
@@ -791,19 +768,7 @@ public class MainActivity extends Activity {
     }
 
     //循环播放图片
-//    setPictureList
-    public void setPictureList( ArrayList<String> new_file_list){
-        posForPicture=0;
-        picture_toPlay_list = new ArrayList<>(new_file_list);
-        System.out.println(picture_toPlay_list);
-        if (picture_toPlay_list.size()<1){
-            System.out.println("文件列表中无文件");
-            return;
-        }else {
-            System.out.println("文件列表");
 
-        }
-    }
     Handler pictureHandler = new Handler();
 
     private String getAllParas(){
@@ -823,11 +788,6 @@ public class MainActivity extends Activity {
         pubResult(re);
         return re;
     }
-//    private void saveParasToLocal(String ){
-//        SharedPreferences.Editor editor2 = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
-//        editor2.putString("video_toPlay_list",video_temp_list.toString().substring(1,video_toPlay_list.toString().length()-1));
-//        editor2.apply();
-//    }
 
     private void setAnyParas(String paraName,String newValue){
         SharedPreferences.Editor editor2 = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
@@ -862,12 +822,11 @@ public class MainActivity extends Activity {
         topicStatus = pref.getString("topicStatus","ddzl/projector/broker/"+mac+"/device_status");
         topicPush = pref.getString("topicPush","ddzl/broker/projector/"+mac+"/advertise/push");
         defaultCity = pref.getString("defaultCity","西安");
-//        defaultWifiSSID = pref.getString("defaultWifiSSID","ddzl");
-//        defaultWifiPWD = pref.getString("defaultWifiPWD","ddzl2019");
+        defaultWifiSSID = pref.getString("defaultWifiSSID","ddzl");
+        defaultWifiPWD = pref.getString("defaultWifiPWD","ddzl2019");
         defaultWifiTYPE = pref.getString("defaultWifiTYPE","WPA2");
-        wordAd = pref.getString("wordAd","垃圾分类，从我做起");
+        wordAd = pref.getString("wordAd","垃圾分类  从我做起");
         textView.setText(wordAd);
-
     }
     //播放两个目录中的图片文件，优先在app file=目录中找，没找到就去找raw目录，再没找到就上报异常
     private  void setPictureListAndTime(ArrayList<String> picture_toPlay_list1,ArrayList<Integer> picture_times){
@@ -1105,9 +1064,11 @@ public class MainActivity extends Activity {
 //        layout1 = inflater.inflate(R.layout.activity_main_projector, null);
         layout1 = findViewById(R.id.constraintlayout1);
         mac = get_mac(MainActivity.this);
-        SharedPreferences.Editor editor = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
-        editor.putString("mac",mac);
-        editor.apply();
+        if (mac!=null){
+            SharedPreferences.Editor editor = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
+            editor.putString("mac",mac);
+            editor.apply();
+        }
 //        Toast.makeText(MainActivity.this,loadString("adPlayStatistic.txt"),Toast.LENGTH_LONG).show();
         topicSubMac = topicSub+"/"+mac;
         topicSubList = new String[]{topicSubMac,topicSub,topicVolume,topicUpdateAd,topicPush,topicTest};
@@ -1355,17 +1316,13 @@ public class MainActivity extends Activity {
             }
             @Override
             public void deliveryComplete(IMqttDeliveryToken iMqttDeliveryToken) {
-
             }
         };
         setUpdateWeatherTimer();
-//        Toast.makeText(MainActivity.this,get_ip(MainActivity.this).split("\\.")[3],Toast.LENGTH_LONG);
         updateWeather(defaultCity);
-//        test_mqtt();
         newMqttClient();
         testFunction();
         restart();
-
 //        testFunction();
         System.out.println("mac地址2");
         System.out.println(get_mac(MainActivity.this));
@@ -1507,8 +1464,6 @@ public class MainActivity extends Activity {
         defaultCity = pref.getString("defaultCity","西安");
 //        updateWeather(defaultCity);
         video_toPlay_list = new ArrayList<>(Arrays.asList(pref.getString("video_toPlay_list","not_set").split(",")));
-
-        System.out.println(video_toPlay_list);
         picture_toPlay_list = new ArrayList<>(Arrays.asList(pref.getString("picture_toPlay_list","not_set").split(",")));
         ArrayList <String>temp_picture_toPlay_list_time = new ArrayList<>(Arrays.asList(pref.getString("picture_toPlay_list_time","not_set").split(",")));
         picture_toPlay_list_time = new ArrayList<>();
@@ -1739,11 +1694,7 @@ public class MainActivity extends Activity {
                     e.printStackTrace();
                 }
             }}).start();
-
-
-
     }
-
     private void heartBeat(){
         Timer timerForHeartBeat =new Timer();
         TimerTask timerTask = new TimerTask() {
@@ -1753,33 +1704,6 @@ public class MainActivity extends Activity {
             }
         };
         timerForHeartBeat.schedule(timerTask, 0,60*1000);
-    }
-    private void newMqttClient2(){
-        String host = mqttIp;
-        MqttConnectOptions options =new MqttConnectOptions();
-        options.setUserName(mqttUsername);
-        options.setPassword(mqttPassword.toCharArray());
-        options.setCleanSession(false);
-        String clientId = get_mac(MainActivity.this);
-        try {
-            MemoryPersistence persistence = new MemoryPersistence();
-            mqttClient=new MqttClient(host,clientId,persistence);
-            mqttClient.setCallback(mqttCallback);//设置回调函数
-            mqttClient.connect(options);//连接broker
-            mqttClient.subscribe(topicSubList);
-//            MqttMessage msg=new MqttMessage();
-//            String msgStr="Hello World";
-//            msg.setPayload(msgStr.getBytes());//设置消息内容
-////                    msg.setQos(2);//设置消息发送质量，可为0,1,2.
-//            msg.setRetained(false);//服务器是否保存最后一条消息，若保存，client再次上线时，将再次受到上次发送的最后一条消息。
-//            mqttClient.publish("topic1",msg);//设置消息的topic，并发送。
-//                    MqttMessage msg2=new MqttMessage();
-//                    msgStr = "close_light";
-//                    msg2.setPayload(msgStr.getBytes());
-//                    mqttClient.publish("order1",msg2);
-        } catch (MqttException e) {
-            e.printStackTrace();
-        }
     }
     private void test_mqtt(){
         new Thread(new Runnable() {
@@ -1798,7 +1722,6 @@ public class MainActivity extends Activity {
                     mqttClient.setCallback(mqttCallback);//设置回调函数
                     mqttClient.connect(options);//连接broker
                     mqttClient.subscribe(subscribeTopics);//设置监听的topic
-
                     ArrayList<String> publist=  new ArrayList<>();
                     MqttMessage msg=new MqttMessage();
                         msg.setPayload(("testM").getBytes());//设置消息内容
@@ -1806,30 +1729,6 @@ public class MainActivity extends Activity {
                         msg.setRetained(false);//服务器是否保存最后一条消息，若保存，client再次上线时，将再次受到上次发送的最后一条消息。
                         Log.e("topic",topicTest);
                         mqttClient.publish(topicTest,msg);//设置消息的topic，并发送。
-
-
-//                    publist.add("downloadhttp://www.w3school.com.cn/example/html5/mov_bbb.mp4@@11.mp4");
-
-//                    publist.add("get_file_list");
-//                    publist.add("update_picture_list:{piclist1.jpg:4, piclist2.jpg:2}");
-//                    publist.add("update_video_list:a3.mp4,a4.mp4");
-//                    publist.add("change_system_volume:50");
-//                    for(int i =0;i<topicSubList.length;i++){
-//                        MqttMessage msg=new MqttMessage();
-//                        msg.setPayload(("testM"+i).getBytes());//设置消息内容
-//                        msg.setQos(2);//设置消息发送质量，可为0,1,2.
-//                        msg.setRetained(false);//服务器是否保存最后一条消息，若保存，client再次上线时，将再次受到上次发送的最后一条消息。
-//                        Log.e("topic"+i,topicSubList[i]);
-//                        mqttClient.publish(topicSubList[i],msg);//设置消息的topic，并发送。
-//                    }
-//                    for(int i=0;i<publist.size();i++){
-//                        MqttMessage msg=new MqttMessage();
-//                        msg.setPayload(publist.get(i).getBytes());//设置消息内容
-//                        msg.setQos(2);//设置消息发送质量，可为0,1,2.
-//                        msg.setRetained(false);//服务器是否保存最后一条消息，若保存，client再次上线时，将再次受到上次发送的最后一条消息。
-//                        mqttClient.publish("ddzl/broker/projector",msg);//设置消息的topic，并发送。
-////                        mqttClient.publish(topicPubMac,"set_wordw我不是一个好人fds");
-//                    }
                 } catch (MqttException e) {
                     e.printStackTrace();
                 }
@@ -1997,10 +1896,8 @@ public class MainActivity extends Activity {
                 videoview.start();
                 posForPicture--;
 //                pictureHandler.removeCallbacks(runnable);
-
                 if(posForPicture>=0){
                     checkPictureFile();
-//                    imageview.setImageURI(Uri.parse(getExternalFilesDir(null).toString()+"/"+picture_toPlay_list.get(posForPicture).trim()));
                     pictureHandler.postDelayed(runnable,picture_toPlay_list_time.get(posForPicture)*1000-(time2-time1));
                 }
                 break;
