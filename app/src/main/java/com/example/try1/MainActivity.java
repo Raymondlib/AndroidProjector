@@ -1224,8 +1224,8 @@ public class MainActivity extends Activity {
                 String order ="";
                 System.out.println("topic:"+s+"\n"+content0);
                 boolean macMatch =false;
-                if(s.equals(topicSub)){
-                    //统一命令
+                final  String finalTopicSub= topicSub;
+                if(s.equals(topicSub)){ //统一命令
                     try {
                         JSONObject result = new JSONObject(content0);
                         order = result.getString("order");
@@ -1234,7 +1234,25 @@ public class MainActivity extends Activity {
                         e.printStackTrace();
                     }
                     macMatch =true;
-                }else {
+                }else if(s.equals(topicUpdateAd)){
+                    String content = content0;
+                    if (content.startsWith("update_video_list")) {
+                        Message message3 = new Message();
+                        message3.what = 10;
+                        message3.obj =  content.split(":")[content.split(":").length-1];
+                        handler.sendMessage(message3);
+                    }
+                    else if(content.startsWith("update_picture_list")) {
+                        Message message3 = new Message();
+                        message3.what = 20;
+//                                    message3.obj = content.split(":")[content.split(":").length - 1];
+                        String tempPictureList = content.substring(20);//{a.jpg:4,b.jpg:5}
+                        System.out.println("tempPictureList"+tempPictureList);
+                        message3.obj =content.substring(20);//{a.jpg:4,b.jpg:5}
+                        handler.sendMessage(message3);;
+                    }
+                }
+                else {
                     try {
                         JSONObject result = new JSONObject(content0);
                         mac = result.getString("mac");
@@ -1323,6 +1341,7 @@ public class MainActivity extends Activity {
                                     message3.what = 10;
                                     message3.obj =  content.split(":")[content.split(":").length-1];
                                     handler.sendMessage(message3);
+                                    break;
                                 }
                                 else if(content.startsWith("update_picture_list")) {
                                     Message message3 = new Message();
