@@ -138,13 +138,13 @@ public class MainActivity extends Activity {
     String topicPush ="ddzl/broker/projector/clientid/advertise/push";
     String topicTest = "ddzl/broker/projector/test";
 
-//    private String defaultWifiSSID ="ddzl";
-//    private String defaultWifiPWD ="ddzl2019";
-//    private String defaultWifiTYPE ="WPA2";
-
-    private String defaultWifiSSID ="dasen_wifi_test";
-    private String defaultWifiPWD ="wifi@mima";
+    private String defaultWifiSSID ="ddzl";
+    private String defaultWifiPWD ="ddzl2019";
     private String defaultWifiTYPE ="WPA2";
+
+//    private String defaultWifiSSID ="dasen_wifi_test";
+//    private String defaultWifiPWD ="wifi@mima";
+//    private String defaultWifiTYPE ="WPA2";
 
     public String topicPubMac;
     public String topicSubMac;
@@ -349,9 +349,9 @@ public class MainActivity extends Activity {
                     editor.apply();
                     setPictureListAndTime(tempPicList,tempPicTimeList);
 //                    switch (msg.arg1){
-//                        case 2: setPictureListAndTime(tempPicList,tempPicTimeList);break;
-//                        case 3: setPictureListAndTime3(tempPicList,tempPicTimeList);break;
-//                    }
+////                        case 2: setPictureListAndTime(tempPicList,tempPicTimeList);break;
+////                        case 3: setPictureListAndTime3(tempPicList,tempPicTimeList);break;
+////                    }
                     break;
                 case 21:
                     final String url = msg.obj.toString().split("@@")[0];
@@ -1068,7 +1068,9 @@ public class MainActivity extends Activity {
             SharedPreferences.Editor editor = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
             editor.putString("mac",mac);
             editor.apply();
+
         }
+        System.out.println("似乎不打印啊");
 //        Toast.makeText(MainActivity.this,loadString("adPlayStatistic.txt"),Toast.LENGTH_LONG).show();
         topicSubMac = topicSub+"/"+mac;
         topicSubList = new String[]{topicSubMac,topicSub,topicVolume,topicUpdateAd,topicPush,topicTest};
@@ -1113,6 +1115,7 @@ public class MainActivity extends Activity {
                 String content0 = new String(mqttMessage.getPayload(),"GB2312");//GB2312
                 String mac="" ;
                 String order ="";
+                String taskId ="";
                 System.out.println("topic:"+s+"\n"+content0);
                 boolean macMatch =false;
                 final  String finalTopicSub= topicSub;
@@ -1120,6 +1123,7 @@ public class MainActivity extends Activity {
                     try {
                         JSONObject result = new JSONObject(content0);
                         order = result.getString("order");
+                        taskId = result.getString("taskId");
                     }catch (JSONException e){
                         saveErrorLog("mqtt接收内容非json格式");
                         e.printStackTrace();
@@ -1130,6 +1134,7 @@ public class MainActivity extends Activity {
                         JSONObject result = new JSONObject(content0);
                         mac = result.getString("mac");
                         order = result.getString("order");
+                        taskId = result.getString("taskId");
                     }catch (JSONException e){
                         saveErrorLog("mqtt接收内容非json格式");
                         e.printStackTrace();
@@ -1155,6 +1160,9 @@ public class MainActivity extends Activity {
                     System.out.println(macMatch);
                 }
                 if(macMatch){
+//                    if(s.equals(topicUpdateAd)){
+//
+//                    }
                     for(String content:order.split("\\n")){
                         System.out.println("order1"+content);
                         switch (content) {
@@ -1318,8 +1326,9 @@ public class MainActivity extends Activity {
             public void deliveryComplete(IMqttDeliveryToken iMqttDeliveryToken) {
             }
         };
-        setUpdateWeatherTimer();
-        updateWeather(defaultCity);
+//        setUpdateWeatherTimer();
+//        updateWeather(defaultCity);
+        System.out.println("先试试1");
         newMqttClient();
         testFunction();
         restart();
@@ -1656,6 +1665,7 @@ public class MainActivity extends Activity {
         return re;
     }
     private void newMqttClient(){
+        System.out.println("先试试");
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -1663,8 +1673,8 @@ public class MainActivity extends Activity {
                 MqttConnectOptions options =new MqttConnectOptions();
                 options.setUserName(mqttUsername);
                 options.setPassword(mqttPassword.toCharArray());
-                options.setCleanSession(true);
-                String clientId = get_mac(MainActivity.this)+"pro123";
+                options.setCleanSession(false);
+                String clientId = get_mac(MainActivity.this)+"pro1234";
                 try {
                     MemoryPersistence persistence = new MemoryPersistence();
                     mqttClient=new MqttClient(host,clientId,persistence);
@@ -1735,8 +1745,6 @@ public class MainActivity extends Activity {
 
             }
         });
-
-
     }
     private void testFunction(){
         System.out.println("mac地址");
@@ -1771,6 +1779,26 @@ public class MainActivity extends Activity {
                 if(testWifi()){
                     Log.e("wifi测试","正常连接");
                     System.out.println("ip地址为:"+get_ip(MainActivity.this));
+                    mac = get_mac(MainActivity.this);
+                    if (mac!=null&&!topicSubMac.contains(mac)){
+                        SharedPreferences.Editor editor = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
+                        editor.putString("mac",mac);
+                        editor.apply();
+                        //更新mac topic
+                        topicSubMac = topicSub+"/"+mac;
+                        topicSubList = new String[]{topicSubMac,topicSub,topicVolume,topicUpdateAd,topicPush,topicTest};
+                        for(int i =0;i<topicSubList.length;i++){
+                            topicSubList[i]=topicSubList[i].replaceFirst("clientid",mac);
+                        }
+                        topicResult=topicResult.replaceFirst("clientid",mac);
+                        topicError=topicError.replaceFirst("clientid",mac);
+                        topicStatus= topicStatus.replaceFirst("clientid",mac);
+                        try {
+                            mqttClient.subscribe(topicSubList);
+                        }catch (MqttException e){
+                            e.printStackTrace();
+                        }
+                    }
                 }else {
                     Log.e("wifi测试","不能正常连接");
                     saveErrorLog("wifi测试，不能正常连接");
@@ -1778,15 +1806,15 @@ public class MainActivity extends Activity {
             }
         };
         timerForWifiTest.schedule(timerTask, 0,10*1000);
-        printWifi();
+
     }
-    private void printWifi(){
-        WifiManager wifiManager = (WifiManager) MainActivity.this.getSystemService(Context.WIFI_SERVICE);
-//        WifiManager wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);
-        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
-        Log.d("wifiInfo", wifiInfo.toString());
-        Log.d("SSID",wifiInfo.getSSID());
-    }
+//    private void printWifi(){
+//        WifiManager wifiManager = (WifiManager) MainActivity.this.getSystemService(Context.WIFI_SERVICE);
+////        WifiManager wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);
+//        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+//        Log.d("wifiInfo", wifiInfo.toString());
+//        Log.d("SSID",wifiInfo.getSSID());
+//    }
     public static boolean isSdCardExist() {
         return Environment.getExternalStorageState().equals(
                 Environment.MEDIA_MOUNTED);
