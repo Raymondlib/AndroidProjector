@@ -11,4 +11,16 @@ public class UpdateVideo {
         this.url = url;
         this.playNum = playNum;
     }
+    private String getAdId(){
+        return adId;
+    }
+    private String getType(){
+        return type;
+    }
+    private String getUrl(){
+        return url;
+    }
+    private int getPlayNum(){
+        return playNum;
+    }
 }
