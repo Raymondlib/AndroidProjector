@@ -66,6 +66,7 @@ import com.makeramen.roundedimageview.RoundedImageView;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttToken;
+import org.eclipse.paho.client.mqttv3.internal.wire.MqttConnect;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONArray;
@@ -164,22 +165,33 @@ public class MainActivity extends Activity {
     private final static int TOPIC_STATUS_ARG1=2;
     private final static int TOPIC_ONLINE_ARG1=3;
     private long totalMemory =0;
-    private Handler mqttHandler = new Handler(new Handler.Callback() {
-        @Override
-        public boolean handleMessage(@NonNull Message message) {
-            switch (message.arg1){
-                case MQTT_STATE_CONNECTED:
-                    break;
-                case MQTT_STATE_RECEIVE:
+    private Handler mqttReconnectHandler = new Handler(){
+        public void handleMessage(Message msg){
+            switch (msg.what){
+                    case MQTT_STATE_LOST:
 //                    MqttObject object= (MqttObject) message.obj;
-                    System.out.println();
-                    break;
-                default:
-                    break;
-            }
-            return false;
-        }
-    });
+                        System.out.println("mqtt断线重连测试");
+                        if(testWifi()){
+                            String host = mqttIp;
+                            MqttConnectOptions options =new MqttConnectOptions();
+                            options.setUserName(mqttUsername);
+                            options.setPassword(mqttPassword.toCharArray());
+                            options.setCleanSession(false);
+                            String clientId = macColon;
+                            try {
+                                MemoryPersistence persistence = new MemoryPersistence();
+                                mqttClient=new MqttClient(host,clientId,persistence);
+                                mqttClient.setCallback(mqttCallback);//设置回调函数
+                                mqttClient.connect(options);//连接broker
+                                mqttClient.subscribe(topicSubList);}
+                            catch (MqttException e){e.printStackTrace();}
+                            pubResult("mqtt断线重连成功");
+                            System.out.println("mqtt断线重连成功了吗");
+                        }
+                        break;
+                    default:
+                        break;
+            }}};
 //    public void pubOrderTopic(String s,String topic){
 //        Message message = new Message();
 //        message.what = 19;
@@ -237,20 +249,24 @@ public class MainActivity extends Activity {
                     break;
                 case 5:
                     MqttMessage mqttMsg0=new MqttMessage();
-                    try{
-                        switch (msg.arg1){
-                            case TOPIC_ERROR_ARG1:mqttMsg0.setPayload(msg.obj.toString().getBytes());mqttMsg0.setQos(2);mqttClient.publish(topicError,mqttMsg0);break;
-                            case TOPIC_STATUS_ARG1:mqttMsg0.setPayload(msg.obj.toString().getBytes());mqttMsg0.setQos(0);mqttClient.publish(topicStatus,mqttMsg0);break;
-                            case TOPIC_RESULT_ARG1:mqttMsg0.setPayload(msg.obj.toString().getBytes());mqttMsg0.setQos(1);mqttClient.publish(topicResult,mqttMsg0);break;
-                            case TOPIC_ONLINE_ARG1:mqttMsg0.setPayload(msg.obj.toString().getBytes());mqttMsg0.setQos(1);mqttClient.publish(topicOnline,mqttMsg0);break;
-                            default:mqttMsg0.setPayload("topic wrong".getBytes());break;
-                        }
+                    if(testWifi()){
+                        try{
+                            switch (msg.arg1){
+                                case TOPIC_ERROR_ARG1:mqttMsg0.setPayload(msg.obj.toString().getBytes());mqttMsg0.setQos(2);mqttClient.publish(topicError,mqttMsg0);break;
+                                case TOPIC_STATUS_ARG1:mqttMsg0.setPayload(msg.obj.toString().getBytes());mqttMsg0.setQos(0);mqttClient.publish(topicStatus,mqttMsg0);break;
+                                case TOPIC_RESULT_ARG1:mqttMsg0.setPayload(msg.obj.toString().getBytes());mqttMsg0.setQos(1);mqttClient.publish(topicResult,mqttMsg0);break;
+                                case TOPIC_ONLINE_ARG1:mqttMsg0.setPayload(msg.obj.toString().getBytes());mqttMsg0.setQos(1);mqttClient.publish(topicOnline,mqttMsg0);break;
+                                default:mqttMsg0.setPayload("topic wrong".getBytes());break;
+                            }
 //                          msg.setQos(2);//设置消息发送质量，可为0,1,2. 0代表至多一次,2代表仅1次
 //                        mqttMsg.setRetained(false);
-                    } catch (MqttException e) {
-                        System.out.println(getTime()+"mqtt异常,reboot");
-                        e.printStackTrace();
+                        } catch (MqttException e) {
+                            System.out.println(getTime()+"mqtt异常,reboot");
+                            Message m =Message.obtain(mqttReconnectHandler,MQTT_STATE_LOST);
+                            m.sendToTarget();
+                            e.printStackTrace();
 //                        reboot();
+                        }
                     }
                     try {
                         msg.recycle(); //it can work in some situations
@@ -417,14 +433,15 @@ public class MainActivity extends Activity {
                     String tempOrder =  msg.obj.toString();
                     switch (tempOrder){
                         case "testFunction":
-                            testFunction();
-                            break;
+                            testFunction();break;
+                        case "initjingyuan":
+                            initjingyuan();break;
+                        case "inittangyan":
+                            inittangyan();break;
                         case "getAllParas":
-                            getAllParas();
-                            break;
+                            getAllParas();break;
                         case "getErrorLog":
-                            pubError(getErrorLog());
-                            break;
+                            pubError(getErrorLog());break;
                         default:
                             if(tempOrder.startsWith("setAnyParas")){
                                 String Separator = "::";
@@ -1157,12 +1174,14 @@ public class MainActivity extends Activity {
         });
         imageview = (RoundedImageView) findViewById(R.id.imageView);
         weatherMap = initWeatherMap();
-        adPlayStatistic = new HashMap<>();
+//        adPlayStatistic = new HashMap<>();
         mqttCallback = new MqttCallback() {
             @Override
             public void connectionLost(Throwable throwable) {
                 mqttIsConnect=false;
                 saveErrorLog("mqtt断线");
+                Message m =Message.obtain(mqttReconnectHandler,MQTT_STATE_LOST);
+                m.sendToTarget();
             }
             @Override
             public void messageArrived(String s, MqttMessage mqttMessage) throws Exception {
@@ -1199,7 +1218,6 @@ public class MainActivity extends Activity {
                         ExecutorService threadPool = Executors.newCachedThreadPool();
                         try {
                             JSONObject result = new JSONObject(content0);
-
                             int pictureListSize=result.getJSONArray("imgs").length();
                             final CountDownLatch latchForPic = new CountDownLatch(pictureListSize);
                             ArrayList<String> tempPicList=new ArrayList<>();
@@ -1450,6 +1468,7 @@ public class MainActivity extends Activity {
 //        testFunction();
 //        initPlay();
         restart();
+        timerProcess();
 //
 //        ;
 //        pubOrderTopic(getTime()+" :设备上线"+macColon,topicOnline);
@@ -1763,48 +1782,22 @@ public class MainActivity extends Activity {
         }
     }
     private String getProjectorInfo(){
-        StringBuilder result = new StringBuilder();
-//        String re ="{\"projector_mac\":\""+macColon+"\",\"cpu_usage_rate\":\""
-//                +"小米"+"\",\"memory_usage_rate\":\""
-//                +getRamUseRate()+"\",\"disk_usage_rate\":\""
-//                +getRomUseRate()+"\",\"inner_ip\":\""+"\","
-//                +"\"volume\":\""+systemVolume+"\","
-//                +"\"light_machine\":\""+light_machine+"\","
-//                +"\"current_video_ad_id\":\""+current_video_ad_id+"\","
-//                +"\"current_picture_ad_id\":\""+current_picture_ad_id+"\","
-//                +"\"ad_play_statistic\":[";
-        result.append("{\"projector_mac\":\"");
-        result.append(macColon);
-        result.append("\",\"cpu_usage_rate\":\"");
-        result.append(getCPURateDesc_All());
-        result.append("\",\"memory_usage_rate\":\"");
-//        result.append(getRamUseRate());
-        result.append("0.53");
-        result.append("\",\"disk_usage_rate\":\"");
-        result.append(getRomUseRate());
-        result.append("\",\"inner_ip\":\"");
-        result.append(ip);
-        result.append("\"volume\":\"");
-        result.append(systemVolume);
-        result.append("\"light_machine\":\"");
-        result.append(light_machine);
-        result.append("\",\"current_video_ad_id\":\"");
-        result.append(current_video_ad_id);
-        result.append("\",\"current_picture_ad_id\":\"");
-        result.append(current_picture_ad_id);
-        result.append("\",\"ad_play_statistic\":[");
+        String s="{\"projector_mac\":\""+macColon+"\",\"cpu_usage_rate\":\""
+                +getCPURateDesc_All()+"\",\"memory_usage_rate\":\""
+                +getRamUseRate()+"\",\"disk_usage_rate\":\""
+                +getRomUseRate()+"\",\"inner_ip\":\""+"\","
+                +"\"volume\":\""+systemVolume+"\","
+                +"\"light_machine\":\""+light_machine+"\","
+                +"\"current_video_ad_id\":\""+current_video_ad_id+"\","
+                +"\"current_picture_ad_id\":\""+current_picture_ad_id+"\","
+                +"\"ad_play_statistic\":[";
         for(String k:adPlayStatistic.keySet()){
 //            re+= "{\"ad_id\":\""+k+"\",\"play_num\":\""+adPlayStatistic.get(k)+"\"},";
 //            result.append("{\"ad_id\":\""+k+"\",\"play_num\":\""+adPlayStatistic.get(k)+"\"},");
-            result.append("{\"ad_id\":\"");
-            result.append(k);
-            result.append("\",\"play_num\":\"");
-            result.append(adPlayStatistic.get(k));
-            result.append("\"},");
+            s+=("{\"ad_id\":\""+k+"\",\"play_num\":\""+adPlayStatistic.get(k)+"\"},");
         }
-        result.deleteCharAt(result.length()-1);
-        result.append("]}");
-        return result.toString();
+        return s;
+//        return result.toString();
     }
     private void newMqttClient(){
         new Thread(new Runnable() {
@@ -1827,10 +1820,6 @@ public class MainActivity extends Activity {
                     for(int i=0;i<topicSubList.length;i++){
                         System.out.println(topicSubList[i]);
                     }
-                    System.out.println("心跳信息");
-                    System.out.println(getProjectorInfo());
-                    heartBeat();
-                    System.out.println("怎么不打印心跳");
                 } catch (MqttException e) {
                     e.printStackTrace();
                 }
@@ -1842,10 +1831,11 @@ public class MainActivity extends Activity {
             @Override
             public void run() {
 //                System.out.println(getProjectorInfo());
+                System.out.println("heartBeat");
                 pubStatus(getProjectorInfo());
             }
         };
-        timerForHeartBeat.schedule(timerTask, 0,60*1000);
+        timerForHeartBeat.schedule(timerTask, 0,2*1000);
     }
     private void test_mqtt(){
         new Thread(new Runnable() {
@@ -1895,92 +1885,77 @@ public class MainActivity extends Activity {
         setPictureListAndTime(list2,list3);
         setVideoList2(list1);
     }
-    private void testFunction(){
+    private void testFunction() {
         System.out.println("初始化");
-        ArrayList<String> list1= new ArrayList<>();
+        ArrayList<String> list1 = new ArrayList<>();
+        list1.add("v4");
+        list1.add("v5");
         list1.add("v1");
         list1.add("v2");
         list1.add("v3");
-        ArrayList<String> list2= new ArrayList<>();
+        ArrayList<String> list2 = new ArrayList<>();
         list2.add("p1");
         list2.add("p2");
         list2.add("p3");
-        ArrayList<Integer> list3= new ArrayList<>();
+        ArrayList<Integer> list3 = new ArrayList<>();
         list3.add(8);
         list3.add(8);
         list3.add(8);
-        setPictureListAndTime(list2,list3);
+        setPictureListAndTime(list2, list3);
         setVideoList2(list1);
-        SharedPreferences.Editor editor2 = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
-        editor2.putString("video_toPlay_list",list1.toString().substring(1,video_toPlay_list.toString().length()-1));
-        editor2.putString("picture_toPlay_list",list2.toString().substring(1,list2.toString().length()-1));
-        editor2.putString("picture_toPlay_list_time",list3.toString().substring(1,list3.toString().length()-1));
+        SharedPreferences.Editor editor2 = getSharedPreferences("data_try1", MODE_PRIVATE).edit();
+        editor2.putString("video_toPlay_list", list1.toString().substring(1, video_toPlay_list.toString().length() - 1));
+        editor2.putString("picture_toPlay_list", list2.toString().substring(1, list2.toString().length() - 1));
+        editor2.putString("picture_toPlay_list_time", list3.toString().substring(1, list3.toString().length() - 1));
         editor2.apply();
-        Timer timerForWifiTest =new Timer();
-        TimerTask timerTaskForWifiTest = new TimerTask() {
-            @Override
-            public void run() {
-//                test_mqtt();
-                if(testWifi()){
-//                    Log.e("wifi测试","正常连接");
-                    if(mac==null){
-                        //说明没有初始化,也就是mac和ip还没有保存
-                        mac = get_mac(MainActivity.this);
-                        ip = get_ip(MainActivity.this);
-                        macColon = mac.replaceAll(".{2}(?=.)", "$0:");
-                        SharedPreferences.Editor editor = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
-                        editor.putString("mac",mac);
-                        editor.putString("macColon",macColon);
-                        editor.putString("ip",ip);
-                        editor.apply();
-                        if(!topicSubMac.contains(macColon)){
-                            topicSubMac = topicSub+"/"+macColon;
-                            topicSubList = new String[]{topicSubMac,topicSub,topicVolume,topicUpdateAd,topicPush,topicTest};
-                            for(int i =0;i<topicSubList.length;i++){
-                                topicSubList[i]=topicSubList[i].replaceFirst("clientid",macColon);
-                            }
-                            topicResult=topicResult.replaceFirst("clientid",macColon);
-                            topicError=topicError.replaceFirst("clientid",macColon);
-                            topicStatus= topicStatus.replaceFirst("clientid",macColon);
-                            try {
-                                mqttClient.subscribe(topicSubList);
-                            }catch (MqttException e){
-                                e.printStackTrace();
-                            }
-                        }
-                    }
-                    if(triggerForWifiReconnect==2){
-                        System.out.println("reboot:系统重启");
-                        triggerForWifiReconnect= 0;//复位
-                        reboot();
-                    }
-                }else {
-//                    Log.e("wifi测试","不能正常通信");
-                    saveErrorLog("wifi不能正常通信");
-                    triggerForWifiReconnect= 2;// wifi 刚断开
-                    connectDefaultWifi();
-                }
-            }
-        };
-
-        TimerTask timerTaskForSaveAdMap = new TimerTask() {
-            @Override
-            public void run() {
-                if(adPlayStatistic!=null){
-                    saveAdMap();
-                }
-            }
-        };
-        timerForWifiTest.schedule(timerTaskForWifiTest, 0,30*1000);
-        timerForWifiTest.schedule(timerTaskForSaveAdMap, 0,3600*1000);
     }
-//    private void printWifi(){
-//        WifiManager wifiManager = (WifiManager) MainActivity.this.getSystemService(Context.WIFI_SERVICE);
-////        WifiManager wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);
-//        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
-//        Log.d("wifiInfo", wifiInfo.toString());
-//        Log.d("SSID",wifiInfo.getSSID());
-//    }
+    private void initjingyuan() {
+        System.out.println("初始化");
+        ArrayList<String> list1 = new ArrayList<>();
+        list1.add("v4");
+        list1.add("v5");
+        list1.add("v1");
+        list1.add("v2");
+        list1.add("v3");
+        ArrayList<String> list2 = new ArrayList<>();
+        list2.add("p1");
+        list2.add("p2");
+        list2.add("p3");
+        ArrayList<Integer> list3 = new ArrayList<>();
+        list3.add(8);
+        list3.add(8);
+        list3.add(8);
+        setPictureListAndTime(list2, list3);
+        setVideoList2(list1);
+        SharedPreferences.Editor editor2 = getSharedPreferences("data_try1", MODE_PRIVATE).edit();
+        editor2.putString("video_toPlay_list", list1.toString().substring(1, video_toPlay_list.toString().length() - 1));
+        editor2.putString("picture_toPlay_list", list2.toString().substring(1, list2.toString().length() - 1));
+        editor2.putString("picture_toPlay_list_time", list3.toString().substring(1, list3.toString().length() - 1));
+        editor2.apply();
+    }
+    private void inittangyan() {
+        System.out.println("初始化");
+        ArrayList<String> list1 = new ArrayList<>();
+        list1.add("v6");
+        list1.add("v1");
+        list1.add("v2");
+        list1.add("v3");
+        ArrayList<String> list2 = new ArrayList<>();
+        list2.add("p1");
+        list2.add("p2");
+        list2.add("p3");
+        ArrayList<Integer> list3 = new ArrayList<>();
+        list3.add(8);
+        list3.add(8);
+        list3.add(8);
+        setPictureListAndTime(list2, list3);
+        setVideoList2(list1);
+        SharedPreferences.Editor editor2 = getSharedPreferences("data_try1", MODE_PRIVATE).edit();
+        editor2.putString("video_toPlay_list", list1.toString().substring(1, video_toPlay_list.toString().length() - 1));
+        editor2.putString("picture_toPlay_list", list2.toString().substring(1, list2.toString().length() - 1));
+        editor2.putString("picture_toPlay_list_time", list3.toString().substring(1, list3.toString().length() - 1));
+        editor2.apply();
+    }
     public static boolean isSdCardExist() {
         return Environment.getExternalStorageState().equals(
                 Environment.MEDIA_MOUNTED);
@@ -2128,6 +2103,79 @@ public class MainActivity extends Activity {
         }
         return true;
     }
+    private void timerProcess(){
+        System.out.println("心跳信息");
+        System.out.println(getProjectorInfo());
+        heartBeat();
+        System.out.println("怎么不打印心跳");
+        Timer timerForWifiTest =new Timer();
+        TimerTask timerTaskForWifiTest = new TimerTask() {
+            @Override
+            public void run() {
+//                test_mqtt();
+                if(testWifi()){
+//                    Log.e("wifi测试","正常连接");
+                    System.out.println(getTime()+"wifi通信ok----");
+                    System.out.println("发送心跳");
+//                    pubStatus(getProjectorInfo());
+//                    pubStatus("getProjectorInfo()");
+//                    pubStatus(getProjectorInfo());
+                    if(mac==null){
+                        //说明没有初始化,也就是mac和ip还没有保存
+                        mac = get_mac(MainActivity.this);
+                        ip = get_ip(MainActivity.this);
+                        macColon = mac.replaceAll(".{2}(?=.)", "$0:");
+                        SharedPreferences.Editor editor = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
+                        editor.putString("mac",mac);
+                        editor.putString("macColon",macColon);
+                        editor.putString("ip",ip);
+                        editor.apply();
+                        if(!topicSubMac.contains(macColon)){
+                            topicSubMac = topicSub+"/"+macColon;
+                            topicSubList = new String[]{topicSubMac,topicSub,topicVolume,topicUpdateAd,topicPush,topicTest};
+                            for(int i =0;i<topicSubList.length;i++){
+                                topicSubList[i]=topicSubList[i].replaceFirst("clientid",macColon);
+                            }
+                            topicResult=topicResult.replaceFirst("clientid",macColon);
+                            topicError=topicError.replaceFirst("clientid",macColon);
+                            topicStatus= topicStatus.replaceFirst("clientid",macColon);
+                            try {
+                                mqttClient.subscribe(topicSubList);
+                            }catch (MqttException e){
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                    if(triggerForWifiReconnect==2){
+                        triggerForWifiReconnect= 0;//复位
+                        saveErrorLog("wifi恢复通信");
+                    }
+                }else {
+//                    Log.e("wifi测试","不能正常通信");
+
+                    System.out.println(getTime()+"wifi不能正常通信");
+                    if(triggerForWifiReconnect==2){
+                        saveErrorLog("wifi不能正常通信");
+                    }
+                    triggerForWifiReconnect= 2;// wifi 刚断开
+
+                    connectDefaultWifi();
+                }
+            }
+        };
+
+        TimerTask timerTaskForSaveAdMap = new TimerTask() {
+            @Override
+            public void run() {
+                if(adPlayStatistic!=null){
+                    saveAdMap();
+                }
+            }
+        };
+        timerForWifiTest.schedule(timerTaskForWifiTest, 0,5*1000);
+        timerForWifiTest.schedule(timerTaskForSaveAdMap, 0,3600*1000);
+    }
+
 }
 
 
