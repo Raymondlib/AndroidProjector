@@ -1469,7 +1469,10 @@ public class MainActivity extends Activity {
 //        initPlay();
         restart();
         if(isFisrtInstall()){
+            System.out.println("第一次安装");
             initPlay();
+        }else {
+            System.out.println("不是第一次安装");
         }
         timerProcess();
 //
