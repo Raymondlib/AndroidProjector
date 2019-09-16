@@ -1174,7 +1174,7 @@ public class MainActivity extends Activity {
         });
         imageview = (RoundedImageView) findViewById(R.id.imageView);
         weatherMap = initWeatherMap();
-//        adPlayStatistic = new HashMap<>();
+        adPlayStatistic = new HashMap<>();
         mqttCallback = new MqttCallback() {
             @Override
             public void connectionLost(Throwable throwable) {
@@ -1468,6 +1468,9 @@ public class MainActivity extends Activity {
 //        testFunction();
 //        initPlay();
         restart();
+        if(isFisrtInstall()){
+            initPlay();
+        }
         timerProcess();
 //
 //        ;
@@ -1545,6 +1548,11 @@ public class MainActivity extends Activity {
         FileInputStream in =null;
         BufferedReader reader=null;
         StringBuilder content=new StringBuilder();
+//        if(new File(filename).exists()){
+//            System.out.println("文件存在");
+//        }else {
+//            System.out.println("文件不存在");
+//        }
         try {
             in=openFileInput(filename);
             reader=new BufferedReader(new InputStreamReader(in));
@@ -1571,7 +1579,7 @@ public class MainActivity extends Activity {
         reloadParas();
         systemVolume = getSystemVolume(MainActivity.this);
         String errorLogString=loadString("errorLog.txt");
-        if(errorLogString!=null&&errorLogString.length()>1){
+        if(errorLogString!=null&&errorLogString.length()>3){
             System.out.println("重启加载errorlog="+errorLogString);
             System.out.println(errorLogString);
         } else {
@@ -1584,8 +1592,9 @@ public class MainActivity extends Activity {
 //                checkWifi();
 //            }
 //        },0,1000*30);
+
         String mapString=loadString("adPlayStatistic.txt");
-        if(mapString!=null&&mapString.length()>1){
+        if(mapString!=null&&mapString.length()>3){
             System.out.println("重启加载map="+mapString);
             mapString=mapString.substring(1, mapString.length()-1);
             String[] strs=mapString.split(",");
@@ -1604,7 +1613,6 @@ public class MainActivity extends Activity {
         System.out.println(pref.getString("mac","不存在"));
         defaultCity = pref.getString("defaultCity","西安");
 //        updateWeather(defaultCity);
-
         video_toPlay_list = new ArrayList<>(Arrays.asList(pref.getString("video_toPlay_list","not_set").split(",")));
         picture_toPlay_list = new ArrayList<>(Arrays.asList(pref.getString("picture_toPlay_list","not_set").split(",")));
         ArrayList <String>temp_picture_toPlay_list_time = new ArrayList<>(Arrays.asList(pref.getString("picture_toPlay_list_time","not_set").split(",")));
@@ -1791,11 +1799,13 @@ public class MainActivity extends Activity {
                 +"\"current_video_ad_id\":\""+current_video_ad_id+"\","
                 +"\"current_picture_ad_id\":\""+current_picture_ad_id+"\","
                 +"\"ad_play_statistic\":[";
-        for(String k:adPlayStatistic.keySet()){
-//            re+= "{\"ad_id\":\""+k+"\",\"play_num\":\""+adPlayStatistic.get(k)+"\"},";
-//            result.append("{\"ad_id\":\""+k+"\",\"play_num\":\""+adPlayStatistic.get(k)+"\"},");
-            s+=("{\"ad_id\":\""+k+"\",\"play_num\":\""+adPlayStatistic.get(k)+"\"},");
+        if(adPlayStatistic!=null){
+            for(String k:adPlayStatistic.keySet()){
+                s+=("{\"ad_id\":\""+k+"\",\"play_num\":\""+adPlayStatistic.get(k)+"\"},");
+            }
         }
+        s=s.substring(0,s.length()-1);
+        s+="]}";
         return s;
 //        return result.toString();
     }
@@ -1835,7 +1845,7 @@ public class MainActivity extends Activity {
                 pubStatus(getProjectorInfo());
             }
         };
-        timerForHeartBeat.schedule(timerTask, 0,2*1000);
+        timerForHeartBeat.schedule(timerTask, 0,60*1000);
     }
     private void test_mqtt(){
         new Thread(new Runnable() {
@@ -2172,8 +2182,20 @@ public class MainActivity extends Activity {
                 }
             }
         };
-        timerForWifiTest.schedule(timerTaskForWifiTest, 0,5*1000);
+        timerForWifiTest.schedule(timerTaskForWifiTest, 0,10*1000);
         timerForWifiTest.schedule(timerTaskForSaveAdMap, 0,3600*1000);
+    }
+    private boolean isFisrtInstall(){
+        SharedPreferences pref = getSharedPreferences("data_try1",MODE_PRIVATE);
+        int installCount =pref.getInt("installCount",0);
+        if(installCount==0){
+            SharedPreferences.Editor editor2 = getSharedPreferences("data_try1", MODE_PRIVATE).edit();
+            editor2.putInt("installCount", 1);
+            editor2.apply();
+            return true;
+        }else {
+            return false;
+        }
     }
 
 }
