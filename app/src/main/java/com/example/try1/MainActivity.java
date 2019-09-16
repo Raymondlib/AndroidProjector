@@ -169,7 +169,6 @@ public class MainActivity extends Activity {
         public void handleMessage(Message msg){
             switch (msg.what){
                     case MQTT_STATE_LOST:
-//                    MqttObject object= (MqttObject) message.obj;
                         System.out.println("mqtt断线重连测试");
                         if(testWifi()){
                             String host = mqttIp;
@@ -192,12 +191,6 @@ public class MainActivity extends Activity {
                     default:
                         break;
             }}};
-//    public void pubOrderTopic(String s,String topic){
-//        Message message = new Message();
-//        message.what = 19;
-//        message.obj =s+"--"+topic ;
-//        handler.sendMessage(message);
-//    }
     private void pubOrderTopic(String order ,String topic){
         Message message;
         if(topic.equals(topicError)) {  message = Message.obtain(handler,5,TOPIC_ERROR_ARG1,0,order);}
@@ -207,7 +200,6 @@ public class MainActivity extends Activity {
         else {message = Message.obtain(handler,5,TOPIC_ONLINE_ARG1,0,order);}
         message.sendToTarget();
     }
-
     public void pubResult(String s){
         pubOrderTopic(s,topicResult);
         System.out.println("topicResult=");
@@ -219,7 +211,6 @@ public class MainActivity extends Activity {
     public void pubStatus(String s){
         pubOrderTopic(s,topicStatus);
     }
-
     // 接收子线程中的信息，来更新控件，因为只有主线程才能更新控件
     private Handler  handler = new Handler(){
         public void handleMessage(Message msg){
@@ -265,7 +256,6 @@ public class MainActivity extends Activity {
                             Message m =Message.obtain(mqttReconnectHandler,MQTT_STATE_LOST);
                             m.sendToTarget();
                             e.printStackTrace();
-//                        reboot();
                         }
                     }
                     try {
@@ -451,7 +441,6 @@ public class MainActivity extends Activity {
                             }
                             break;
                     }
-
                     break;
                 case 25:
                     //图片不打断插入
@@ -558,7 +547,6 @@ public class MainActivity extends Activity {
             return -1;
         }
     }
-
     //读取文件列表，并返回 绝对路径+文件名
     public ArrayList<File> getFiles (String path) {
         path =externalFilesDir;
@@ -1104,7 +1092,7 @@ public class MainActivity extends Activity {
         startActivity(intent);
     }
 
-    //  https://blog.csdn.net/Luck_mw/article/details/71085697
+    //  https://blog.csdn.net/Luck_mw/article/details/71085697  videoview内存泄漏
     @Override
     protected void attachBaseContext(Context newBase) {
         super.attachBaseContext(new ContextWrapper(newBase) {
@@ -1120,7 +1108,6 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-//        CrashHandler.getInstance().init();
         //去除标题栏和状态栏
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
@@ -1141,7 +1128,6 @@ public class MainActivity extends Activity {
         }
         System.out.println("第一步mac："+mac);
         System.out.println(mac.replaceAll(".{2}(?=.)", "$0:"));
-//        Toast.makeText(MainActivity.this,loadString("adPlayStatistic.txt"),Toast.LENGTH_LONG).show();
         if(mac!=null){
             SharedPreferences.Editor editor = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
             editor.putString("mac",mac);
@@ -1604,7 +1590,6 @@ public class MainActivity extends Activity {
         System.out.println(pref.getString("mac","不存在"));
         defaultCity = pref.getString("defaultCity","西安");
 //        updateWeather(defaultCity);
-
         video_toPlay_list = new ArrayList<>(Arrays.asList(pref.getString("video_toPlay_list","not_set").split(",")));
         picture_toPlay_list = new ArrayList<>(Arrays.asList(pref.getString("picture_toPlay_list","not_set").split(",")));
         ArrayList <String>temp_picture_toPlay_list_time = new ArrayList<>(Arrays.asList(pref.getString("picture_toPlay_list_time","not_set").split(",")));
@@ -1835,7 +1820,7 @@ public class MainActivity extends Activity {
                 pubStatus(getProjectorInfo());
             }
         };
-        timerForHeartBeat.schedule(timerTask, 0,2*1000);
+        timerForHeartBeat.schedule(timerTask, 0,60*1000);
     }
     private void test_mqtt(){
         new Thread(new Runnable() {
@@ -2172,7 +2157,7 @@ public class MainActivity extends Activity {
                 }
             }
         };
-        timerForWifiTest.schedule(timerTaskForWifiTest, 0,5*1000);
+        timerForWifiTest.schedule(timerTaskForWifiTest, 0,10*1000);
         timerForWifiTest.schedule(timerTaskForSaveAdMap, 0,3600*1000);
     }
 
