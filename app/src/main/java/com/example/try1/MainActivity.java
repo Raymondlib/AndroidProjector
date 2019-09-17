@@ -1456,7 +1456,7 @@ public class MainActivity extends Activity {
         restart();
         if(isFisrtInstall()){
             System.out.println("第一次安装");
-            initPlay();
+            initjingyuan();
         }else {
             System.out.println("不是第一次安装");
         }
@@ -1565,7 +1565,9 @@ public class MainActivity extends Activity {
         return content.toString();
     }
     private void restart(){
+        System.out.println("restart--");
         reloadParas();
+        System.out.println("reloadParas--");
         systemVolume = getSystemVolume(MainActivity.this);
         String errorLogString=loadString("errorLog.txt");
         if(errorLogString!=null&&errorLogString.length()>3){
@@ -1581,7 +1583,6 @@ public class MainActivity extends Activity {
 //                checkWifi();
 //            }
 //        },0,1000*30);
-
         String mapString=loadString("adPlayStatistic.txt");
         if(mapString!=null&&mapString.length()>3){
             System.out.println("重启加载map="+mapString);
@@ -1788,7 +1789,7 @@ public class MainActivity extends Activity {
                 +"\"current_video_ad_id\":\""+current_video_ad_id+"\","
                 +"\"current_picture_ad_id\":\""+current_picture_ad_id+"\","
                 +"\"ad_play_statistic\":[";
-        if(adPlayStatistic!=null){
+        if(adPlayStatistic!=null&&!adPlayStatistic.isEmpty()){
             for(String k:adPlayStatistic.keySet()){
                 s+=("{\"ad_id\":\""+k+"\",\"play_num\":\""+adPlayStatistic.get(k)+"\"},");
             }
@@ -1883,12 +1884,15 @@ public class MainActivity extends Activity {
         list3.add(8);
         setPictureListAndTime(list2,list3);
         setVideoList2(list1);
+        SharedPreferences.Editor editor2 = getSharedPreferences("data_try1", MODE_PRIVATE).edit();
+        editor2.putString("video_toPlay_list", list1.toString().substring(1, video_toPlay_list.toString().length() - 1));
+        editor2.putString("picture_toPlay_list", list2.toString().substring(1, list2.toString().length() - 1));
+        editor2.putString("picture_toPlay_list_time", list3.toString().substring(1, list3.toString().length() - 1));
+        editor2.apply();
     }
     private void testFunction() {
         System.out.println("初始化");
         ArrayList<String> list1 = new ArrayList<>();
-        list1.add("v4");
-        list1.add("v5");
         list1.add("v1");
         list1.add("v2");
         list1.add("v3");
@@ -2104,7 +2108,7 @@ public class MainActivity extends Activity {
     }
     private void timerProcess(){
         System.out.println("心跳信息");
-        System.out.println(getProjectorInfo());
+//        System.out.println(getProjectorInfo());
         heartBeat();
         System.out.println("怎么不打印心跳");
         Timer timerForWifiTest =new Timer();
@@ -2115,15 +2119,17 @@ public class MainActivity extends Activity {
                 if(testWifi()){
 //                    Log.e("wifi测试","正常连接");
                     System.out.println(getTime()+"wifi通信ok----");
-                    System.out.println("发送心跳");
+//                    System.out.println(macColon);
 //                    pubStatus(getProjectorInfo());
 //                    pubStatus("getProjectorInfo()");
 //                    pubStatus(getProjectorInfo());
-                    if(mac==null){
+                    if(mac==null||mac.length()<11){
                         //说明没有初始化,也就是mac和ip还没有保存
                         mac = get_mac(MainActivity.this);
                         ip = get_ip(MainActivity.this);
                         macColon = mac.replaceAll(".{2}(?=.)", "$0:");
+//                        System.out.println(macColon);
+//                        System.out.println(macColon);
                         SharedPreferences.Editor editor = getSharedPreferences("data_try1",MODE_PRIVATE).edit();
                         editor.putString("mac",mac);
                         editor.putString("macColon",macColon);
