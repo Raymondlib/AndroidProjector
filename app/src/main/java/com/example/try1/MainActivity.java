@@ -1456,7 +1456,7 @@ public class MainActivity extends Activity {
         restart();
         if(isFisrtInstall()){
             System.out.println("第一次安装");
-            initjingyuan();
+            inittangyan();
         }else {
             System.out.println("不是第一次安装");
         }
